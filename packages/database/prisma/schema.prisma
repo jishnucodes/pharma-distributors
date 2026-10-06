@@ -1,0 +1,239 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Company {
+  id              String                @id @default(cuid())
+  name            String
+  slug            String                @unique
+  shortName       String
+  accentColor     String                @default("teal") // "teal" (Lakshmi) or "blue" (Kothittil)
+  tagline         String?
+  description     String
+  serviceAreas    String                // Comma separated or descriptive coverage
+  address         String
+  phone           String
+  email           String
+  whatsapp        String?
+  mapUrl          String?
+  businessHours   String
+  drugLicenseNo   String?
+  gstin           String?
+  isActive        Boolean               @default(true)
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  companyProducts      CompanyProduct[]
+  companyManufacturers CompanyManufacturer[]
+  inquiries            Inquiry[]
+  memberships          CompanyMembership[]
+
+  @@index([slug])
+}
+
+model Manufacturer {
+  id          String                @id @default(cuid())
+  name        String
+  slug        String                @unique
+  logoUrl     String?               // Authorized logo or SVG path (NO PRODUCT IMAGES)
+  website     String?
+  country     String?               @default("India")
+  isDemo      Boolean               @default(true)
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+
+  products             Product[]
+  companyManufacturers CompanyManufacturer[]
+
+  @@index([slug])
+}
+
+model CompanyManufacturer {
+  id                 String       @id @default(cuid())
+  companyId          String
+  manufacturerId     String
+  isAuthorized       Boolean      @default(true)
+  partnershipDetails String?
+  createdAt          DateTime     @default(now())
+
+  company      Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  manufacturer Manufacturer @relation(fields: [manufacturerId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, manufacturerId])
+  @@index([companyId])
+  @@index([manufacturerId])
+}
+
+model Ingredient {
+  id          String              @id @default(cuid())
+  name        String              @unique // Canonical name e.g. "Paracetamol"
+  slug        String              @unique
+  description String?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  aliases            IngredientAlias[]
+  productIngredients ProductIngredient[]
+
+  @@index([name])
+  @@index([slug])
+}
+
+model IngredientAlias {
+  id           String     @id @default(cuid())
+  ingredientId String
+  aliasName    String     // e.g. "Acetaminophen", "APAP"
+  createdAt    DateTime   @default(now())
+
+  ingredient Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+
+  @@unique([ingredientId, aliasName])
+  @@index([aliasName])
+  @@index([ingredientId])
+}
+
+model Category {
+  id          String            @id @default(cuid())
+  name        String            @unique
+  slug        String            @unique
+  description String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  products ProductCategory[]
+
+  @@index([slug])
+}
+
+model Product {
+  id                String              @id @default(cuid())
+  name              String              // e.g. "Dolo 650", "Calpol 650"
+  slug              String              @unique
+  manufacturerId    String
+  dosageForm        String              // "Tablet", "Capsule", "Syrup", "Suspension", "Injection"
+  packaging         String              // "15 Tablets / Strip", "10 Tablets / Strip", "60 ml Bottle"
+  description       String?
+  storageConditions String?             // e.g. "Store below 30°C in a dry place"
+  schedule          String?             @default("Schedule H Prescription Drug")
+  isDemo            Boolean             @default(true)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  manufacturer    Manufacturer        @relation(fields: [manufacturerId], references: [id], onDelete: Restrict)
+  ingredients     ProductIngredient[]
+  companyProducts CompanyProduct[]
+  categories      ProductCategory[]
+  inquiries       Inquiry[]
+
+  @@index([name])
+  @@index([manufacturerId])
+  @@index([dosageForm])
+}
+
+model ProductIngredient {
+  id           String     @id @default(cuid())
+  productId    String
+  ingredientId String
+  quantity     Float      // Decimal-safe quantity (e.g. 650, 500, 125, 5)
+  unit         String     // "mg", "g", "ml", "mcg", "% w/w", "% w/v"
+  perBasis     String     @default("per unit") // "per tablet", "per capsule", "per 5 ml", "per vial"
+  isPrimary    Boolean    @default(false)
+
+  product    Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  ingredient Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, ingredientId])
+  @@index([productId])
+  @@index([ingredientId])
+}
+
+model CompanyProduct {
+  id               String   @id @default(cuid())
+  companyId        String
+  productId        String
+  isPublished      Boolean  @default(true)
+  isFeatured       Boolean  @default(false)
+  itemCode         String?  // SKU / distributor internal code
+  distributorNotes String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, productId])
+  @@index([companyId])
+  @@index([productId])
+  @@index([isPublished])
+  @@index([isFeatured])
+}
+
+model ProductCategory {
+  id         String   @id @default(cuid())
+  productId  String
+  categoryId String
+  createdAt  DateTime @default(now())
+
+  product  Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, categoryId])
+  @@index([productId])
+  @@index([categoryId])
+}
+
+model Inquiry {
+  id           String   @id @default(cuid())
+  companyId    String
+  productId    String?
+  name         String
+  businessName String
+  email        String?
+  phone        String
+  message      String
+  status       String   @default("PENDING") // PENDING, IN_REVIEW, RESPONDED, CLOSED
+  adminNotes   String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  company Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([companyId])
+  @@index([productId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model User {
+  id           String              @id @default(cuid())
+  email        String              @unique
+  passwordHash String
+  name         String
+  role         String              @default("COMPANY_ADMIN") // SUPER_ADMIN, COMPANY_ADMIN
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  memberships CompanyMembership[]
+
+  @@index([email])
+}
+
+model CompanyMembership {
+  id        String   @id @default(cuid())
+  userId    String
+  companyId String
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, companyId])
+  @@index([userId])
+  @@index([companyId])
+}

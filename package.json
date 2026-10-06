@@ -1,0 +1,31 @@
+{
+  "name": "pharma-distributors-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "L & K Pharmaceutical Distribution Platform for Lakshmi Pharma & The Kothittil Pharmaceutical Distributor",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspaces",
+    "build": "npm run build --workspaces",
+    "dev:web": "npm run dev --workspace=@lk/web",
+    "dev:api": "npm run dev --workspace=@lk/api",
+    "build:web": "npm run build --workspace=@lk/web",
+    "build:api": "npm run build --workspace=@lk/api",
+    "db:generate": "npm run generate --workspace=@lk/database",
+    "db:seed": "npm run seed --workspace=@lk/database",
+    "db:studio": "npm run studio --workspace=@lk/database"
+  },
+  "keywords": [
+    "pharmaceutical",
+    "distribution",
+    "b2b",
+    "nextjs",
+    "express",
+    "prisma"
+  ],
+  "author": "",
+  "license": "ISC"
+}

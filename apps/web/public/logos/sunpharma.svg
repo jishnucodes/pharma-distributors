@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 50" fill="none">
+  <rect width="180" height="50" rx="8" fill="#F8FAFC"/>
+  <circle cx="26" cy="25" r="13" fill="#EA580C"/>
+  <circle cx="26" cy="25" r="7" fill="#FEF08A"/>
+  <text x="48" y="32" font-family="system-ui, sans-serif" font-weight="800" font-size="18" fill="#0F172A">SUN PHARMA</text>
+</svg>

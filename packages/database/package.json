@@ -1,0 +1,30 @@
+{
+  "name": "@lk/database",
+  "version": "1.0.0",
+  "description": "Prisma client and database definitions for L & K Pharmaceutical Platform",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "generate": "prisma generate --schema=prisma/schema.prisma",
+    "generate:sqlite": "prisma generate --schema=prisma/schema.sqlite.prisma",
+    "push": "prisma db push --schema=prisma/schema.prisma",
+    "push:sqlite": "prisma db push --schema=prisma/schema.sqlite.prisma",
+    "migrate": "prisma migrate dev --schema=prisma/schema.prisma",
+    "seed": "tsx prisma/seed.ts",
+    "studio": "prisma studio --schema=prisma/schema.sqlite.prisma",
+    "studio:pg": "prisma studio --schema=prisma/schema.prisma",
+    "build": "tsc",
+    "format": "prisma format"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.18.0"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^20.14.0",
+    "bcryptjs": "^2.4.3",
+    "prisma": "^5.18.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.0"
+  }
+}

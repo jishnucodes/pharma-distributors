@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 50" fill="none">
+  <rect width="180" height="50" rx="8" fill="#F8FAFC"/>
+  <rect x="14" y="13" width="24" height="24" rx="6" fill="#0D9488"/>
+  <text x="21" y="30" font-family="system-ui, sans-serif" font-weight="900" font-size="16" fill="#FFFFFF">μ</text>
+  <text x="46" y="32" font-family="system-ui, sans-serif" font-weight="800" font-size="19" fill="#0F172A">MICRO LABS</text>
+</svg>
