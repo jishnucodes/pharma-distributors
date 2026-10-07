@@ -44,12 +44,12 @@ export function ProductTable({
               <th scope="col" className="py-3.5 px-4">
                 Active Composition &amp; Strength
               </th>
-              <th scope="col" className="py-3.5 px-4">
+              {/* <th scope="col" className="py-3.5 px-4">
                 Dosage Form
               </th>
               <th scope="col" className="py-3.5 px-4">
                 Packaging
-              </th>
+              </th> */}
               <th scope="col" className="py-3.5 px-4 text-right">
                 Commercial Actions
               </th>
@@ -76,18 +76,18 @@ export function ProductTable({
                         >
                           {product.name}
                         </Link>
-                        {product.isFeatured && (
+                        {/* {product.isFeatured && (
                           <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
                             Featured
                           </span>
-                        )}
+                        )} */}
                       </div>
 
-                      {product.itemCode && (
+                      {/* {product.itemCode && (
                         <span className="text-[10px] font-mono text-slate-400">
                           SKU: {product.itemCode}
                         </span>
-                      )}
+                      )} */}
 
                       {/* Match Reasons Badges */}
                       {product.matchReasons && product.matchReasons.length > 0 && (
@@ -139,16 +139,16 @@ export function ProductTable({
                   </td>
 
                   {/* Dosage Form */}
-                  <td className="py-3.5 px-4 align-top">
+                  {/* <td className="py-3.5 px-4 align-top">
                     <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">
                       {product.dosageForm}
                     </span>
-                  </td>
+                  </td> */}
 
                   {/* Packaging */}
-                  <td className="py-3.5 px-4 align-top text-slate-600 font-medium">
+                  {/* <td className="py-3.5 px-4 align-top text-slate-600 font-medium">
                     {product.packaging}
-                  </td>
+                  </td> */}
 
                   {/* Actions */}
                   <td className="py-3.5 px-4 align-top text-right">
@@ -209,17 +209,17 @@ export function ProductTable({
                     >
                       {product.name}
                     </Link>
-                    {product.isFeatured && (
+                    {/* {product.isFeatured && (
                       <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
                         Featured
                       </span>
-                    )}
+                    )} */}
                   </div>
-                  {product.itemCode && (
+                  {/* {product.itemCode && (
                     <span className="text-[10px] font-mono text-slate-400">
                       SKU: {product.itemCode}
                     </span>
-                  )}
+                  )} */}
                 </div>
 
                 <ManufacturerLogo
@@ -265,7 +265,7 @@ export function ProductTable({
               )}
 
               {/* Dosage Form & Packaging */}
-              <div className="flex items-center justify-between text-xs text-slate-600 pt-1 border-t border-slate-100">
+              {/* <div className="flex items-center justify-between text-xs text-slate-600 pt-1 border-t border-slate-100">
                 <div className="flex items-center gap-1.5">
                   <span className="font-medium text-slate-500">Dosage:</span>
                   <span className="font-semibold text-blue-700">{product.dosageForm}</span>
@@ -274,7 +274,7 @@ export function ProductTable({
                   <span className="font-medium text-slate-500">Pack:</span>
                   <span className="font-semibold text-slate-800">{product.packaging}</span>
                 </div>
-              </div>
+              </div> */}
 
               {/* Action Buttons */}
               <div className="flex items-center gap-2 pt-2">

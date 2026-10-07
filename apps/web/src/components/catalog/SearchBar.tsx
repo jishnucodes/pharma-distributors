@@ -45,13 +45,13 @@ export function SearchBar({ initialValue = "", onSearch, accentColor = "teal" }:
     inputRef.current?.focus();
   };
 
-  const sampleQueries = [
+  /* const sampleQueries = [
     { label: "Paracetamol", query: "paracetamol", hint: "Active Ingredient" },
     { label: "Acetaminophen", query: "acetaminophen", hint: "Ingredient Alias" },
     { label: "Paracetamol 650 mg", query: "paracetamol 650 mg", hint: "Salt + Strength" },
     { label: "Dolo", query: "dolo", hint: "Brand" },
     { label: "Augmentin", query: "augmentin", hint: "Multi-Ingredient" },
-  ];
+  ]; */
 
   return (
     <div className="w-full space-y-2.5">
@@ -96,7 +96,7 @@ export function SearchBar({ initialValue = "", onSearch, accentColor = "teal" }:
       </form>
 
       {/* Suggested Search Chips */}
-      <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-600">
+      {/* <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-600">
         <span className="flex items-center gap-1 text-[11px] font-medium text-slate-400 mr-1">
           <Sparkles className="w-3.5 h-3.5 text-amber-500" />
           <span>Quick queries:</span>
@@ -121,7 +121,7 @@ export function SearchBar({ initialValue = "", onSearch, accentColor = "teal" }:
             <span className="text-[10px] text-slate-400 font-normal">({item.hint})</span>
           </button>
         ))}
-      </div>
+      </div> */}
     </div>
   );
 }

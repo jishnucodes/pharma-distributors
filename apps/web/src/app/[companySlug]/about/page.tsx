@@ -55,7 +55,7 @@ export default async function CompanyAboutPage({ params }: AboutPageProps) {
       </div>
 
       {/* Demo Data Disclaimer Badge */}
-      <div className="p-4 rounded-xl bg-slate-100 border border-slate-200 text-xs text-slate-600 flex items-center justify-between gap-3">
+      {/* <div className="p-4 rounded-xl bg-slate-100 border border-slate-200 text-xs text-slate-600 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <FileText className="w-4 h-4 text-slate-500 shrink-0" />
           <span>
@@ -65,7 +65,7 @@ export default async function CompanyAboutPage({ params }: AboutPageProps) {
         <span className="font-mono text-[10px] font-bold text-slate-500 px-2 py-0.5 rounded bg-slate-200">
           DEMO DATA
         </span>
-      </div>
+      </div> */}
 
       {/* Operational Facts & Logistics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs">

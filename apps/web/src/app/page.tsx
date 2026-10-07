@@ -1,15 +1,9 @@
 import React from "react";
 import Link from "next/link";
 import {
-  Building2,
   ArrowRight,
   ShieldCheck,
-  CheckCircle2,
   Package,
-  Layers,
-  Sparkles,
-  PhoneCall,
-  Search,
   Lock,
 } from "lucide-react";
 import { ManufacturerLogo } from "@/components/common/ManufacturerLogo";
@@ -25,22 +19,6 @@ export default function MasterLandingPage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-slate-50/50">
-      {/* Top Notification Bar */}
-      <div className="bg-slate-900 text-slate-300 text-xs py-2 px-4 border-b border-slate-800">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="font-semibold text-white">L &amp; K Master Trade Network:</span>
-            <span className="text-slate-300">Authorized B2B Pharmaceutical Logistics &amp; Distribution</span>
-          </div>
-          <div className="flex items-center gap-4 text-[11px]">
-            <span className="text-slate-400">Strictly Wholesale Supply to Licensed Chemists &amp; Hospitals</span>
-            <Link href="/admin" className="text-emerald-400 hover:text-emerald-300 font-medium">
-              Admin Portal &rarr;
-            </Link>
-          </div>
-        </div>
-      </div>
 
       {/* Master Header */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-2xs">
@@ -91,34 +69,6 @@ export default function MasterLandingPage() {
                 L &amp; K Brand
               </span>
             </h1>
-
-            <p className="text-base sm:text-lg text-slate-600 max-w-2xl mx-auto leading-relaxed">
-              Explore isolated company catalogs, composition-based active salt search, and authorized manufacturer directories with strict regulatory compliance.
-            </p>
-
-            {/* Quick Composition Search Teaser Callout */}
-            <div className="max-w-2xl mx-auto p-4 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center justify-between gap-4 text-left">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-700 flex items-center justify-center shrink-0">
-                  <Sparkles className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-slate-900">
-                    Composition-Based Product Search
-                  </h4>
-                  <p className="text-[11px] text-slate-500">
-                    Search by active ingredients (e.g., Paracetamol), aliases (Acetaminophen), strength (650 mg), or brands (Dolo).
-                  </p>
-                </div>
-              </div>
-              <Link
-                href="/lakshmi-pharma/products"
-                className="inline-flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-bold text-teal-700 bg-teal-50 hover:bg-teal-100 border border-teal-200 shrink-0 transition-colors"
-              >
-                <span>Try Search</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
-            </div>
           </div>
         </section>
 

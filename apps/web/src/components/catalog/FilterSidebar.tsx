@@ -27,10 +27,10 @@ export function FilterSidebar({
 }: FilterSidebarProps) {
   const isTeal = accentColor === "teal";
   const hasActiveFilters = Boolean(
-    selectedManufacturer || selectedDosageForm || selectedCategory || selectedStrength
+    selectedManufacturer /* || selectedDosageForm || selectedCategory || selectedStrength */
   );
 
-  const commonStrengths = ["650 mg", "500 mg", "40 mg", "10 mg"];
+  // const commonStrengths = ["650 mg", "500 mg", "40 mg", "10 mg"];
 
   return (
     <aside className="w-full bg-white rounded-xl border border-slate-200/90 p-5 space-y-6 shadow-xs">
@@ -89,7 +89,7 @@ export function FilterSidebar({
       )}
 
       {/* 2. Dosage Form Filter */}
-      {filterMeta?.dosageForms && filterMeta.dosageForms.length > 0 && (
+      {/* {filterMeta?.dosageForms && filterMeta.dosageForms.length > 0 && (
         <div className="space-y-2.5">
           <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">
             Dosage Form
@@ -119,10 +119,10 @@ export function FilterSidebar({
             })}
           </div>
         </div>
-      )}
+      )} */}
 
       {/* 3. Strength Preset Filters */}
-      <div className="space-y-2.5">
+      {/* <div className="space-y-2.5">
         <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">
           Strength
         </h4>
@@ -147,10 +147,10 @@ export function FilterSidebar({
             );
           })}
         </div>
-      </div>
+      </div> */}
 
       {/* 4. Therapeutic Category Filter */}
-      {filterMeta?.categories && filterMeta.categories.length > 0 && (
+      {/* {filterMeta?.categories && filterMeta.categories.length > 0 && (
         <div className="space-y-2.5">
           <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">
             Category
@@ -182,7 +182,7 @@ export function FilterSidebar({
             })}
           </div>
         </div>
-      )}
+      )} */}
     </aside>
   );
 }

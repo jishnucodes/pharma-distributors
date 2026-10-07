@@ -167,9 +167,9 @@ export default function CompanyProductsPage({ params }: ProductsPageProps) {
           <FilterSidebar
             filterMeta={data?.filterMeta}
             selectedManufacturer={initialMfg}
-            selectedDosageForm={initialDosage}
-            selectedCategory={initialCat}
-            selectedStrength={initialStrength}
+            /* selectedDosageForm={initialDosage} */
+            /* selectedCategory={initialCat} */
+            /* selectedStrength={initialStrength} */
             onFilterChange={handleFilterChange}
             onReset={handleResetFilters}
             accentColor={accentColor}
@@ -179,12 +179,12 @@ export default function CompanyProductsPage({ params }: ProductsPageProps) {
         {/* Product Results */}
         <div className="lg:col-span-3 space-y-4">
           {/* Medical & Equivalence Disclaimer Notice */}
-          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 text-xs text-slate-600 flex items-start gap-2.5">
+          {/* <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 text-xs text-slate-600 flex items-start gap-2.5">
             <Info className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
             <p className="leading-relaxed text-[11px]">
               <strong>Catalog Specification Notice:</strong> All products are cataloged under their registered brand names and authorized manufacturers. Matching active compositions and strengths do not indicate automatic clinical interchangeability. Dispensing must follow valid prescriber specifications.
             </p>
-          </div>
+          </div> */}
 
           {/* Loading State */}
           {loading && (
