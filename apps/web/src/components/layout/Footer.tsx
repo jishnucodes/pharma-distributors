@@ -145,7 +145,7 @@ export function Footer({ currentCompany }: FooterProps) {
       </div>
 
       {/* Bottom copyright line */}
-      <div className="border-t border-slate-800/80 py-4 bg-slate-950">
+      <div className="border-t border-slate-800/80 py-4 pb-20 lg:pb-4 bg-slate-950">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-slate-400">
           <p>&copy; {new Date().getFullYear()} L &amp; K Group. All rights reserved. Demo data clearly indicated.</p>
           <div className="flex items-center gap-4">

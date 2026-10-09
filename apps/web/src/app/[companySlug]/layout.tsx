@@ -56,7 +56,7 @@ export default async function CompanyLayout({ children, params }: CompanyLayoutP
     >
       <TopBar company={company} />
       <Header currentCompany={company} />
-      <main className="flex-1 bg-slate-50/40">{children}</main>
+      <main className="flex-1 bg-slate-50/40 pb-16 lg:pb-0">{children}</main>
       <Footer currentCompany={company} />
     </div>
   );
