@@ -13,7 +13,7 @@
     "seed": "tsx prisma/seed.ts",
     "studio": "prisma studio --schema=prisma/schema.sqlite.prisma",
     "studio:pg": "prisma studio --schema=prisma/schema.prisma",
-    "build": "tsc",
+    "build": "prisma generate --schema=prisma/schema.prisma && tsc",
     "format": "prisma format"
   },
   "dependencies": {
