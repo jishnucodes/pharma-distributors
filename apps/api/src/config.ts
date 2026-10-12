@@ -1,9 +1,10 @@
 import dotenv from "dotenv";
 import path from "path";
 
-// Load root .env if available, or local
-dotenv.config({ path: path.resolve(__dirname, "../../../.env") });
-dotenv.config();
+// In production (Render), env vars are injected directly.
+// In development, load from root .env or local .env file.
+dotenv.config({ path: path.resolve(__dirname, "../../../.env"), override: false });
+dotenv.config({ override: false });
 
 export const config = {
   port: parseInt(process.env.PORT || "5000", 10),

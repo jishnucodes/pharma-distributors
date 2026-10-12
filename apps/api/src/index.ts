@@ -18,15 +18,26 @@ app.use(
   })
 );
 
+// Parse allowed origins from CORS_ORIGIN (supports comma-separated values)
+const allowedOrigins = config.corsOrigin
+  .split(",")
+  .map((o) => o.trim())
+  .filter(Boolean);
+
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow localhost and specified CORS_ORIGIN
-      if (!origin || origin.includes("localhost") || origin === config.corsOrigin) {
-        callback(null, true);
-      } else {
-        callback(null, true); // Permissive for local dev
+      // Allow requests with no origin (e.g., server-to-server, health checks)
+      if (!origin) return callback(null, true);
+      // Allow localhost in development
+      if (config.nodeEnv === "development" && origin.includes("localhost")) {
+        return callback(null, true);
       }
+      // Allow configured origins (Vercel URL, custom domain, etc.)
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      callback(new Error(`CORS: Origin '${origin}' not allowed`));
     },
     credentials: true,
   })
