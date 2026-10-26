@@ -42,6 +42,43 @@ module.exports = {
       fontFamily: {
         sans: ["Inter", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "sans-serif"],
       },
+      animation: {
+        "float-slow": "float 7s ease-in-out infinite",
+        "float-medium": "float 5s ease-in-out infinite",
+        "float-fast": "float 3.5s ease-in-out infinite",
+        "pulse-glow": "pulseGlow 3s ease-in-out infinite",
+        "shimmer": "shimmer 2.5s linear infinite",
+        "marquee": "marquee 28s linear infinite",
+        "marquee-reverse": "marqueeReverse 28s linear infinite",
+      },
+      keyframes: {
+        float: {
+          "0%, 100%": { transform: "translateY(0px) rotate(0deg)" },
+          "50%": { transform: "translateY(-12px) rotate(1deg)" },
+        },
+        pulseGlow: {
+          "0%, 100%": { opacity: "0.4", transform: "scale(1)" },
+          "50%": { opacity: "0.8", transform: "scale(1.05)" },
+        },
+        shimmer: {
+          "0%": { backgroundPosition: "-200% 0" },
+          "100%": { backgroundPosition: "200% 0" },
+        },
+        marquee: {
+          "0%": { transform: "translateX(0%)" },
+          "100%": { transform: "translateX(-50%)" },
+        },
+        marqueeReverse: {
+          "0%": { transform: "translateX(-50%)" },
+          "100%": { transform: "translateX(0%)" },
+        },
+      },
+      boxShadow: {
+        "glass": "0 8px 32px 0 rgba(15, 23, 42, 0.08)",
+        "glass-hover": "0 14px 40px -4px rgba(15, 23, 42, 0.14)",
+        "glow-teal": "0 0 40px -10px rgba(13, 148, 136, 0.35)",
+        "glow-blue": "0 0 40px -10px rgba(37, 99, 235, 0.35)",
+      },
     },
   },
   plugins: [],

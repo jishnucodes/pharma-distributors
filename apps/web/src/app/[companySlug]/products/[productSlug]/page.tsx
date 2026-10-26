@@ -15,11 +15,19 @@ import {
   ExternalLink,
   ChevronRight,
   Info,
+  ThermometerSnowflake,
+  Sparkles,
+  ShieldCheck,
+  CheckCircle2,
+  Check,
+  Plus,
 } from "lucide-react";
+import { motion } from "framer-motion";
 import { Product, Company } from "@/types";
 import { fetchProduct } from "@/lib/api";
 import { ManufacturerLogo } from "@/components/common/ManufacturerLogo";
-import { InquiryModal } from "@/components/inquiry/InquiryModal";
+import { ProductDetailSkeleton } from "@/components/common/ModernLoadingSkeleton";
+import { useInquiry } from "@/components/inquiry/InquiryContext";
 
 export default function ProductDetailPage() {
   const params = useParams();
@@ -29,7 +37,7 @@ export default function ProductDetailPage() {
   const [productData, setProductData] = useState<{ company: Company; data: Product } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isInquiryModalOpen, setIsInquiryModalOpen] = useState(false);
+  const { addItem, removeItem, isInTray, openInquiry } = useInquiry();
 
   const isLakshmi = companySlug === "lakshmi-pharma";
   const accentColor = isLakshmi ? "teal" : "blue";
@@ -51,18 +59,7 @@ export default function ProductDetailPage() {
   }, [companySlug, productSlug]);
 
   if (loading) {
-    return (
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center space-y-3">
-        <div
-          className={`w-8 h-8 rounded-full border-2 border-t-transparent animate-spin mx-auto ${
-            isLakshmi ? "border-teal-600" : "border-blue-600"
-          }`}
-        />
-        <p className="text-xs text-slate-500 font-medium">
-          Loading product specifications...
-        </p>
-      </div>
-    );
+    return <ProductDetailSkeleton accentColor={accentColor} />;
   }
 
   if (error || !productData) {
@@ -97,63 +94,114 @@ export default function ProductDetailPage() {
           {company.name}
         </Link>
         <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-        <Link href={`/${companySlug}/products`} className="hover:text-slate-900">
+        <Link href={`/${companySlug}/products`} className="hover:text-slate-900 transition-colors">
           Products
         </Link>
         <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-        <span className="font-semibold text-slate-900 truncate">{product.name}</span>
+        <span className="font-bold text-slate-900 truncate">{product.name}</span>
       </nav>
 
-      {/* 2. Main Product Information Card (Strictly text-based. NO PRODUCT IMAGES) */}
-      <div className="bg-white rounded-2xl border border-slate-200/90 p-6 sm:p-8 shadow-xs space-y-6">
-        {/* Top Header: Brand Name + Actions */}
-        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-6 border-b border-slate-100">
-          <div className="space-y-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200 uppercase tracking-wider">
-                {product.dosageForm}
-              </span>
-              {product.schedule && (
-                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
-                  {product.schedule}
+      {/* 2. Main Product Information Card with Ambient Glow and Kinetic Spring */}
+      <motion.div 
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+        className="relative"
+      >
+        {/* Soft Ambient Behind Card */}
+        <div 
+          className={`absolute -top-12 -right-12 w-72 h-72 rounded-full blur-3xl pointer-events-none -z-10 ${
+            isLakshmi ? "bg-teal-100/50" : "bg-blue-100/50"
+          }`} 
+        />
+
+        <div className="bg-white/90 backdrop-blur-md rounded-3xl border border-slate-200/90 p-6 sm:p-10 shadow-lg space-y-6">
+          {/* Top Header: Brand Name + Actions */}
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-6 border-b border-slate-100">
+            <div className="space-y-2.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200 uppercase tracking-wider">
+                  {product.dosageForm}
                 </span>
-              )}
-              {product.isFeatured && (
-                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                  Featured Line
+                {product.schedule && (
+                  <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                    {product.schedule}
+                  </span>
+                )}
+                {product.isFeatured && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                    <Sparkles className="w-3 h-3 text-emerald-600" />
+                    <span>Featured Formulation</span>
+                  </span>
+                )}
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-mono font-bold bg-cyan-50 text-cyan-800 border border-cyan-200">
+                  <ShieldCheck className="w-3 h-3 text-cyan-600" />
+                  <span>Verified Batch Stock</span>
                 </span>
+              </div>
+
+              <h1 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
+                {product.name}
+              </h1>
+
+              {product.itemCode && (
+                <p className="text-xs font-mono text-slate-400">
+                  Distributor SKU / Code: <strong className="text-slate-700">{product.itemCode}</strong>
+                </p>
               )}
             </div>
 
-            <h1 className="text-2xl sm:text-4xl font-black text-slate-900 tracking-tight">
-              {product.name}
-            </h1>
+            <div className="flex flex-col sm:items-end gap-2.5 shrink-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (isInTray(product.id)) {
+                      removeItem(product.id);
+                    } else {
+                      addItem(product);
+                    }
+                  }}
+                  className={`inline-flex items-center justify-center gap-1.5 px-4 py-3 rounded-xl text-xs font-bold transition-all active:scale-98 cursor-pointer ${
+                    isInTray(product.id)
+                      ? "bg-emerald-50 text-emerald-800 border border-emerald-300 shadow-2xs"
+                      : "bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200"
+                  }`}
+                >
+                  {isInTray(product.id) ? (
+                    <>
+                      <Check className="w-4 h-4 text-emerald-600" />
+                      <span>In Inquiry Tray &bull; Added</span>
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-4 h-4 text-slate-600" />
+                      <span>+ Add to Inquiry Tray</span>
+                    </>
+                  )}
+                </button>
 
-            {product.itemCode && (
-              <p className="text-xs font-mono text-slate-400">
-                Distributor SKU / Code: <strong className="text-slate-600">{product.itemCode}</strong>
-              </p>
-            )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!isInTray(product.id)) addItem(product);
+                    openInquiry(product);
+                  }}
+                  className={`inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-xs sm:text-sm font-bold text-white shadow-md transition-all hover:scale-102 active:scale-98 cursor-pointer ${
+                    isLakshmi
+                      ? "bg-teal-700 hover:bg-teal-800 shadow-teal-700/20"
+                      : "bg-blue-700 hover:bg-blue-800 shadow-blue-700/20"
+                  }`}
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  <span>Enquire Now</span>
+                </button>
+              </div>
+              <span className="text-[10px] text-slate-400">
+                Commercial wholesale rates quoted directly by licensed trade desk
+              </span>
+            </div>
           </div>
-
-          <div className="flex flex-col sm:items-end gap-2 shrink-0">
-            <button
-              type="button"
-              onClick={() => setIsInquiryModalOpen(true)}
-              className={`inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-xs sm:text-sm font-bold text-white shadow-md transition-all hover:scale-[1.02] ${
-                isLakshmi
-                  ? "bg-teal-700 hover:bg-teal-800 shadow-teal-700/20"
-                  : "bg-blue-700 hover:bg-blue-800 shadow-blue-700/20"
-              }`}
-            >
-              <MessageSquare className="w-4 h-4" />
-              <span>Enquire About This Product</span>
-            </button>
-            <span className="text-[10px] text-slate-400">
-              Commercial trade discount available for licensed buyers
-            </span>
-          </div>
-        </div>
 
         {/* Product Specification Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs">
@@ -228,8 +276,8 @@ export default function ProductDetailPage() {
             </span>
           </div>
 
-          <div className="overflow-hidden rounded-xl border border-slate-200 text-xs">
-            <table className="w-full text-left border-collapse">
+          <div className="overflow-x-auto scrollbar-thin rounded-xl border border-slate-200 text-xs">
+            <table className="w-full min-w-[500px] text-left border-collapse">
               <thead>
                 <tr className="bg-slate-100 text-slate-600 uppercase text-[10px] font-bold tracking-wider border-b border-slate-200">
                   <th className="py-2.5 px-4">Active Ingredient (Canonical)</th>
@@ -283,6 +331,7 @@ export default function ProductDetailPage() {
           </div>
         )}
       </div>
+    </motion.div>
 
       {/* ============================================================ */}
       {/* 4. PRODUCTS WITH MATCHING COMPOSITION SECTION                */}
@@ -380,16 +429,6 @@ export default function ProductDetailPage() {
           </div>
         )}
       </section>
-
-      {/* Inquiry Modal */}
-      <InquiryModal
-        isOpen={isInquiryModalOpen}
-        onClose={() => setIsInquiryModalOpen(false)}
-        companySlug={companySlug}
-        companyName={company.name}
-        accentColor={accentColor}
-        initialProduct={product}
-      />
     </div>
   );
 }

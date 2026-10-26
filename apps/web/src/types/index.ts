@@ -136,6 +136,12 @@ export interface CatalogResponse {
   filterMeta: FilterMeta;
 }
 
+export interface InquiryItem {
+  product: Product;
+  quantity?: string; // Optional (e.g., "50 boxes", "10 strips", or empty for stock/rate check)
+  notes?: string;
+}
+
 export interface InquiryPayload {
   name: string;
   businessName: string;
@@ -143,6 +149,13 @@ export interface InquiryPayload {
   phone: string;
   message: string;
   productId?: string | null;
+  items?: Array<{
+    productId?: string | null;
+    name: string;
+    quantity?: string;
+    packaging?: string;
+    manufacturer?: string;
+  }>;
 }
 
 export interface Inquiry {

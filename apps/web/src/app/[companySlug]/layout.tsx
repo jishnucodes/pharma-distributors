@@ -3,7 +3,13 @@ import { notFound } from "next/navigation";
 import { TopBar } from "@/components/layout/TopBar";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
+import { FloatingTradeSpeedDial } from "@/components/common/FloatingTradeSpeedDial";
+import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 import { fetchCompany } from "@/lib/api";
+
+import { ScrollAnimatedBackground } from "@/components/common/ScrollAnimatedBackground";
+import { InquiryProvider } from "@/components/inquiry/InquiryContext";
+import { CompanyInquiryContainer } from "@/components/inquiry/CompanyInquiryContainer";
 
 interface CompanyLayoutProps {
   children: React.ReactNode;
@@ -48,16 +54,26 @@ export default async function CompanyLayout({ children, params }: CompanyLayoutP
     } as any;
   }
 
+  const isLakshmi = company.slug === "lakshmi-pharma";
+
   return (
-    <div
-      className={`min-h-screen flex flex-col ${
-        company.slug === "lakshmi-pharma" ? "theme-lakshmi" : "theme-kothittil"
-      }`}
-    >
-      <TopBar company={company} />
-      <Header currentCompany={company} />
-      <main className="flex-1 bg-slate-50/40 pb-16 lg:pb-0">{children}</main>
-      <Footer currentCompany={company} />
-    </div>
+    <InquiryProvider companySlug={companySlug}>
+      <div
+        className={`min-h-screen flex flex-col relative ${
+          isLakshmi ? "theme-lakshmi" : "theme-kothittil"
+        }`}
+      >
+        {/* 2026 Modern Scroll-Animated Pharmaceutical Background */}
+        <ScrollAnimatedBackground companySlug={companySlug} />
+
+        <TopBar company={company} />
+        <Header currentCompany={company} />
+        <main className="flex-1 pb-24 lg:pb-0 relative overflow-x-hidden pt-2 sm:pt-3">{children}</main>
+        <Footer currentCompany={company} />
+        <FloatingTradeSpeedDial company={company} />
+        <MobileBottomNav currentCompany={company} />
+        <CompanyInquiryContainer company={company} />
+      </div>
+    </InquiryProvider>
   );
 }

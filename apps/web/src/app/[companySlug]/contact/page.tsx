@@ -14,9 +14,12 @@ import {
   CheckCircle2,
   AlertCircle,
   ShieldAlert,
+  Sparkles,
 } from "lucide-react";
+import { motion } from "framer-motion";
 import { Company } from "@/types";
 import { fetchCompany, submitInquiry } from "@/lib/api";
+import { ContactSkeleton } from "@/components/common/ModernLoadingSkeleton";
 
 export default function CompanyContactPage() {
   const params = useParams();
@@ -81,11 +84,7 @@ export default function CompanyContactPage() {
   };
 
   if (loading) {
-    return (
-      <div className="max-w-4xl mx-auto px-4 py-16 text-center text-xs text-slate-500">
-        Loading commercial contact details...
-      </div>
-    );
+    return <ContactSkeleton />;
   }
 
   if (!company) {
@@ -93,36 +92,49 @@ export default function CompanyContactPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">
+    <motion.div 
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+      className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10"
+    >
       {/* Header */}
-      <div className="space-y-2 pb-4 border-b border-slate-200">
-        <div className="flex items-center gap-2">
-          <span
-            className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
-              isLakshmi
-                ? "bg-emerald-100 text-emerald-900 border border-emerald-200"
-                : "bg-blue-100 text-blue-900 border border-blue-200"
-            }`}
-          >
-            Direct Commercial Trade Desk
-          </span>
-          <span className="text-xs text-slate-400">Authorized B2B Channel</span>
+      <div className="relative space-y-3 pb-6 border-b border-slate-200">
+        <div
+          className={`absolute -top-10 -left-10 w-64 h-64 rounded-full blur-3xl opacity-20 pointer-events-none ${
+            isLakshmi ? "bg-emerald-400" : "bg-blue-400"
+          }`}
+        />
+
+        <div className="relative space-y-2">
+          <div className="flex items-center gap-2">
+            <span
+              className={`px-3 py-1 rounded-full text-xs font-bold ${
+                isLakshmi
+                  ? "bg-emerald-100 text-emerald-900 border border-emerald-200"
+                  : "bg-blue-100 text-blue-900 border border-blue-200"
+              }`}
+            >
+              Direct Commercial Trade Desk
+            </span>
+            <span className="text-xs text-slate-400 font-mono">Form 20B/21B Wholesale Channel</span>
+          </div>
+
+          <h1 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
+            Contact {company.name}
+          </h1>
+
+          <p className="text-xs sm:text-sm text-slate-500 max-w-2xl leading-relaxed">
+            Direct institutional sales and pharmacy dispatch desk for stock availability, trade credit terms, and cold-chain route delivery schedules.
+          </p>
         </div>
-
-        <h1 className="text-2xl sm:text-4xl font-black text-slate-900 tracking-tight">
-          Contact {company.name}
-        </h1>
-
-        <p className="text-xs sm:text-sm text-slate-500 max-w-2xl">
-          Get in touch with our institutional sales and pharmacy dispatch desk for stock confirmation, trade credit terms, and delivery schedules.
-        </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* Left Col: Contact Information (Links rendered only when configured) */}
+        {/* Left Col: Contact Information */}
         <div className="lg:col-span-5 space-y-6">
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 space-y-5 shadow-xs">
-            <h3 className="font-bold text-sm text-slate-900 tracking-tight">
+          <div className="glass-panel rounded-3xl border border-slate-200/90 p-6 sm:p-8 space-y-6 shadow-md">
+            <h3 className="font-black text-base text-slate-900 tracking-tight">
               Warehouse &amp; Trade Desk
             </h3>
 
@@ -220,12 +232,17 @@ export default function CompanyContactPage() {
 
         {/* Right Col: B2B Trade Inquiry Form */}
         <div className="lg:col-span-7">
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 space-y-6 shadow-xs">
+          <div className="bg-white/95 backdrop-blur-xl rounded-3xl border border-slate-200/90 p-6 sm:p-8 space-y-6 shadow-md hover:shadow-xl transition-shadow relative overflow-hidden">
+            <div
+              className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${
+                isLakshmi ? "from-emerald-400 to-teal-500" : "from-blue-500 to-indigo-600"
+              }`}
+            />
             <div>
-              <h3 className="font-bold text-base text-slate-900 tracking-tight">
+              <h3 className="font-black text-lg text-slate-900 tracking-tight">
                 Submit Wholesale Trade Inquiry
               </h3>
-              <p className="text-xs text-slate-500 pt-0.5">
+              <p className="text-xs text-slate-500 pt-1">
                 Our commercial distribution desk for {company.name} will respond within 4 business hours.
               </p>
             </div>
@@ -348,6 +365,6 @@ export default function CompanyContactPage() {
           </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }

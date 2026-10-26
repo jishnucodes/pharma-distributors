@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
+import { motion } from "framer-motion";
 import {
   Package,
   RotateCcw,
@@ -16,8 +17,10 @@ import { CatalogResponse, Product } from "@/types";
 import { fetchCatalog } from "@/lib/api";
 import { SearchBar } from "@/components/catalog/SearchBar";
 import { FilterSidebar } from "@/components/catalog/FilterSidebar";
+import { MobileFilterDrawer } from "@/components/catalog/MobileFilterDrawer";
 import { ProductTable } from "@/components/catalog/ProductTable";
-import { InquiryModal } from "@/components/inquiry/InquiryModal";
+import { CatalogLoadingSkeleton } from "@/components/common/ModernLoadingSkeleton";
+import { useInquiry } from "@/components/inquiry/InquiryContext";
 
 interface ProductsPageProps {
   params: {
@@ -42,10 +45,7 @@ export default function CompanyProductsPage({ params }: ProductsPageProps) {
   const [data, setData] = useState<CatalogResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  // Inquiry Modal State
-  const [selectedProductForInquiry, setSelectedProductForInquiry] = useState<Product | null>(null);
-  const [isInquiryModalOpen, setIsInquiryModalOpen] = useState(false);
+  const { openInquiry } = useInquiry();
 
   const isLakshmi = companySlug === "lakshmi-pharma";
   const accentColor = isLakshmi ? "teal" : "blue";
@@ -113,18 +113,28 @@ export default function CompanyProductsPage({ params }: ProductsPageProps) {
   };
 
   const handleEnquire = (product: Product) => {
-    setSelectedProductForInquiry(product);
-    setIsInquiryModalOpen(true);
+    openInquiry(product);
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+    <motion.div 
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+      className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8 pb-32 sm:pb-28 lg:pb-16 space-y-6"
+    >
       {/* 1. Header & Title Section */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-4 border-b border-slate-200">
-        <div className="space-y-1">
+      <div className="relative flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-slate-200">
+        <div
+          className={`absolute -top-10 -left-10 w-64 h-64 rounded-full blur-3xl opacity-20 pointer-events-none ${
+            isLakshmi ? "bg-emerald-400" : "bg-blue-400"
+          }`}
+        />
+
+        <div className="relative space-y-2">
           <div className="flex items-center gap-2">
             <span
-              className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
+              className={`px-3 py-1 rounded-full text-xs font-bold ${
                 isLakshmi
                   ? "bg-emerald-100 text-emerald-900 border border-emerald-200"
                   : "bg-blue-100 text-blue-900 border border-blue-200"
@@ -132,23 +142,23 @@ export default function CompanyProductsPage({ params }: ProductsPageProps) {
             >
               {isLakshmi ? "Lakshmi Pharma Catalog" : "The Kothittil Pharma Catalog"}
             </span>
-            <span className="text-xs text-slate-400">Scoped B2B Inventory</span>
+            <span className="text-xs text-slate-400 font-mono">Scoped Wholesale Formulations</span>
           </div>
 
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-            Composition-Based Product Directory
+          <h1 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
+            Composition-Based Directory
           </h1>
 
-          <p className="text-xs text-slate-500 max-w-2xl">
-            Search active chemical salts, synonyms/aliases, and exact strengths. Formulations sharing identical compositions remain listed individually with their verified manufacturers.
+          <p className="text-xs sm:text-sm text-slate-500 max-w-2xl leading-relaxed">
+            Search active chemical salts, exact strengths, and therapeutic categories. Directly inspect batch release specs and request commercial trade rates.
           </p>
         </div>
 
         {/* Total Results Count */}
         {data && (
-          <div className="text-xs text-slate-500 shrink-0">
-            Showing <strong className="text-slate-900">{data.products.length}</strong> of{" "}
-            <strong className="text-slate-900">{data.total}</strong> products
+          <div className="text-xs font-medium text-slate-600 shrink-0 glass-pill px-4 py-2.5">
+            Showing <strong className="text-slate-900 font-bold">{data.products.length}</strong> of{" "}
+            <strong className="text-slate-900 font-bold">{data.total}</strong> products
           </div>
         )}
       </div>
@@ -162,14 +172,11 @@ export default function CompanyProductsPage({ params }: ProductsPageProps) {
 
       {/* 3. Catalog Layout (Sidebar Filters + Results) */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
-        {/* Sidebar Filters */}
-        <div className="lg:col-span-1">
+        {/* Desktop Sidebar Filters (Hidden on < lg screens) */}
+        <div className="hidden lg:block lg:col-span-1">
           <FilterSidebar
             filterMeta={data?.filterMeta}
             selectedManufacturer={initialMfg}
-            /* selectedDosageForm={initialDosage} */
-            /* selectedCategory={initialCat} */
-            /* selectedStrength={initialStrength} */
             onFilterChange={handleFilterChange}
             onReset={handleResetFilters}
             accentColor={accentColor}
@@ -177,7 +184,24 @@ export default function CompanyProductsPage({ params }: ProductsPageProps) {
         </div>
 
         {/* Product Results */}
-        <div className="lg:col-span-3 space-y-4">
+        <div className="col-span-1 lg:col-span-3 space-y-4">
+          {/* Mobile Filter Controls Bar (< lg screens) */}
+          <div className="lg:hidden flex items-center justify-between gap-2 p-2.5 rounded-2xl glass-surface">
+            <MobileFilterDrawer
+              filterMeta={data?.filterMeta}
+              selectedManufacturer={initialMfg}
+              onFilterChange={handleFilterChange}
+              onReset={handleResetFilters}
+              accentColor={accentColor}
+              totalProducts={data?.total}
+            />
+
+            {data && (
+              <span className="text-[11px] font-mono text-slate-500 font-medium pr-1">
+                {data.total} formulations
+              </span>
+            )}
+          </div>
           {/* Medical & Equivalence Disclaimer Notice */}
           {/* <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 text-xs text-slate-600 flex items-start gap-2.5">
             <Info className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
@@ -186,19 +210,8 @@ export default function CompanyProductsPage({ params }: ProductsPageProps) {
             </p>
           </div> */}
 
-          {/* Loading State */}
-          {loading && (
-            <div className="bg-white rounded-xl border border-slate-200 p-12 text-center space-y-3">
-              <div
-                className={`w-8 h-8 rounded-full border-2 border-t-transparent animate-spin mx-auto ${
-                  isLakshmi ? "border-teal-600" : "border-blue-600"
-                }`}
-              />
-              <p className="text-xs text-slate-500 font-medium">
-                Searching structured compositions &amp; verified inventory...
-              </p>
-            </div>
-          )}
+          {/* Loading State: 2026 Shimmer Skeleton */}
+          {loading && <CatalogLoadingSkeleton accentColor={accentColor} />}
 
           {/* Error State */}
           {!loading && error && (
@@ -288,16 +301,6 @@ export default function CompanyProductsPage({ params }: ProductsPageProps) {
           )}
         </div>
       </div>
-
-      {/* 4. Inquiry Modal */}
-      <InquiryModal
-        isOpen={isInquiryModalOpen}
-        onClose={() => setIsInquiryModalOpen(false)}
-        companySlug={companySlug}
-        companyName={isLakshmi ? "Lakshmi Pharma" : "The Kothittil Pharmaceutical Distributor"}
-        accentColor={accentColor}
-        initialProduct={selectedProductForInquiry}
-      />
-    </div>
+    </motion.div>
   );
 }

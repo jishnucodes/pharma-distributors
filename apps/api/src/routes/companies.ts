@@ -396,8 +396,15 @@ const inquirySchema = z.object({
   businessName: z.string().min(2, "Business / Pharmacy name is required"),
   email: z.string().email("Invalid email address").optional().or(z.literal("")),
   phone: z.string().min(8, "Valid phone number is required"),
-  message: z.string().min(5, "Inquiry message must be at least 5 characters"),
+  message: z.string().min(3, "Inquiry message must be at least 3 characters"),
   productId: z.string().optional().nullable(),
+  items: z.array(z.object({
+    productId: z.string().optional().nullable(),
+    name: z.string(),
+    quantity: z.string().optional().nullable(),
+    packaging: z.string().optional().nullable(),
+    manufacturer: z.string().optional().nullable(),
+  })).optional(),
 });
 
 companyRouter.post("/:slug/inquiries", async (req: Request, res: Response, next: NextFunction) => {
@@ -405,32 +412,55 @@ companyRouter.post("/:slug/inquiries", async (req: Request, res: Response, next:
     const company = await getCompanyBySlug(req.params.slug);
     const body = inquirySchema.parse(req.body);
 
-    // If productId is supplied, validate it belongs to this company's published catalog
-    if (body.productId) {
+    let effectiveProductId: string | null = body.productId || null;
+
+    // If multi-item list is provided but no single productId, pick first valid product
+    if (!effectiveProductId && body.items && body.items.length > 0) {
+      const firstWithId = body.items.find(i => i.productId);
+      if (firstWithId?.productId) {
+        effectiveProductId = firstWithId.productId;
+      }
+    }
+
+    // If effectiveProductId is supplied, validate it belongs to this company's published catalog
+    if (effectiveProductId) {
       const listing = await prisma.companyProduct.findFirst({
         where: {
           companyId: company.id,
-          productId: body.productId,
+          productId: effectiveProductId,
           isPublished: true,
         },
       });
       if (!listing) {
-        throw new ApiError(
-          400,
-          `Specified product is not listed in ${company.name}'s active catalog`
-        );
+        // If not found in catalog, don't fail multi-product inquiries; just clear the single relation
+        effectiveProductId = null;
       }
+    }
+
+    // Build rich message if multi-item array is passed
+    let finalMessage = body.message;
+    if (body.items && body.items.length > 0) {
+      const formattedItems = body.items
+        .map((item, idx) => {
+          const qtyText = item.quantity && item.quantity.trim() ? `[Qty: ${item.quantity.trim()}]` : "[Rate & Stock Check]";
+          const mfgText = item.manufacturer ? `(${item.manufacturer})` : "";
+          const packText = item.packaging ? `· ${item.packaging}` : "";
+          return `${idx + 1}. ${item.name} ${mfgText} ${packText} - ${qtyText}`;
+        })
+        .join("\n");
+
+      finalMessage = `--- Multi-Product Inquiry (${body.items.length} items) ---\n${formattedItems}\n\nAdditional Buyer Notes:\n${body.message}`;
     }
 
     const inquiry = await prisma.inquiry.create({
       data: {
         companyId: company.id,
-        productId: body.productId || null,
+        productId: effectiveProductId,
         name: body.name,
         businessName: body.businessName,
         email: body.email || null,
         phone: body.phone,
-        message: body.message,
+        message: finalMessage,
         status: "PENDING",
       },
       include: {
