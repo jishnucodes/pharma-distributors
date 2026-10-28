@@ -3,15 +3,18 @@
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import { motion, useScroll, useTransform, useSpring } from "framer-motion";
+import { AntigravityFlowCanvas } from "@/components/canvas/AntigravityFlowCanvas";
 
 interface ScrollAnimatedBackgroundProps {
   companySlug?: string;
   variant?: "lakshmi" | "kothittil" | "home";
+  enable3DFlow?: boolean;
 }
 
 export function ScrollAnimatedBackground({
   companySlug,
   variant,
+  enable3DFlow = true,
 }: ScrollAnimatedBackgroundProps) {
   const [isMounted, setIsMounted] = useState(false);
 
@@ -122,10 +125,23 @@ export function ScrollAnimatedBackground({
         />
       </motion.div>
 
-      {/* 3. MULTIPLANE KINETIC FLOATING MOLECULAR PARTICLES */}
+      {/* 3. FROSTED DIFFUSION VEIL - Guarantees 100% Text & Glassmorphism Readability */}
+      <div className="absolute inset-0 backdrop-blur-[0.5px] bg-white/45 sm:bg-white/35" />
+
+      {/* 4. REAL-TIME 3D WEBGL ANTIGRAVITY FLOW CANVAS (Three.js Molecular Mesh) */}
+      {enable3DFlow && (
+        <AntigravityFlowCanvas
+          variant={variant}
+          companySlug={companySlug}
+          interactive={true}
+          opacity={0.92}
+        />
+      )}
+
+      {/* 5. MULTIPLANE KINETIC FLOATING MOLECULAR ACCENTS */}
       <motion.div
         style={{ y: layerFastY }}
-        className="absolute inset-0 hidden sm:block"
+        className="absolute inset-0 hidden sm:block pointer-events-none"
       >
         {/* Floating Ring 1 (Top-Left) */}
         <div className="absolute top-[18%] left-[8%] w-24 h-24 rounded-full border border-teal-500/15 animate-spin-slow opacity-60" />
@@ -142,9 +158,6 @@ export function ScrollAnimatedBackground({
         {/* Floating Ring 3 (Bottom-Left) */}
         <div className="absolute top-[75%] left-[15%] w-20 h-20 rounded-full border border-cyan-500/15 animate-spin-slow opacity-50" />
       </motion.div>
-
-      {/* 4. FROSTED DIFFUSION VEIL - Guarantees 100% Text & Glassmorphism Readability */}
-      <div className="absolute inset-0 backdrop-blur-[0.5px] bg-white/45 sm:bg-white/35" />
     </div>
   );
 }

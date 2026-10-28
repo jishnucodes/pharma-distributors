@@ -21,8 +21,10 @@ import {
   ChevronRight,
   Activity,
   CheckCircle2,
-  FileCheck
+  FileCheck,
+  Cpu
 } from "lucide-react";
+import { AntigravityFlowCanvas } from "@/components/canvas/AntigravityFlowCanvas";
 
 interface ShowcaseMode {
   id: "biologics" | "generics" | "critical";
@@ -224,8 +226,17 @@ export function HeroKineticShowcase() {
       ref={containerRef}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
-      className="relative pt-24 pb-12 sm:pt-28 sm:pb-16 overflow-hidden perspective-1000 bg-gradient-to-b from-slate-50/80 via-white to-slate-50/50"
+      className="relative pt-24 pb-12 sm:pt-28 sm:pb-16 overflow-hidden perspective-1000 bg-gradient-to-b from-slate-50/40 via-white/20 to-slate-50/30"
     >
+      {/* Real-Time 3D WebGL Three.js Antigravity Flow Canvas */}
+      <AntigravityFlowCanvas
+        variant={activeTab === "critical" ? "kothittil" : "lakshmi"}
+        density="normal"
+        interactive={true}
+        opacity={0.48}
+        className="z-0"
+      />
+
       {/* Dynamic Ambient Background Glows */}
       <div 
         className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] sm:w-[900px] h-[450px] sm:h-[600px] rounded-full blur-3xl -z-10 transition-all duration-700 pointer-events-none opacity-40"
@@ -236,30 +247,38 @@ export function HeroKineticShowcase() {
       <div className="absolute top-10 left-10 w-72 h-72 rounded-full bg-teal-100/40 blur-3xl -z-10 pointer-events-none" />
       <div className="absolute top-20 right-10 w-80 h-80 rounded-full bg-blue-100/40 blur-3xl -z-10 pointer-events-none" />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center min-h-[580px]">
           
           {/* Left Column: Headline, Narrative & Category Switcher */}
           <div className="lg:col-span-7 space-y-6 text-left">
             
-            {/* Top Floating Badge */}
+            {/* Top Floating Badges */}
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
-              className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full glass-pill border border-slate-200/80 shadow-xs"
+              className="inline-flex items-center gap-2 flex-wrap"
             >
-              <div className="flex h-2 w-2 relative">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-teal-600"></span>
+              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full glass-pill border border-slate-200/80 shadow-xs">
+                <div className="flex h-2 w-2 relative">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-teal-600"></span>
+                </div>
+                <span className="text-xs font-semibold text-slate-800 tracking-tight">
+                  Verified Wholesale Healthcare Distribution
+                </span>
+                <span className="text-[10px] font-mono uppercase tracking-widest px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                  CDSCO Compliant
+                </span>
               </div>
-              <span className="text-xs font-semibold text-slate-800 tracking-tight">
-                Verified Wholesale Healthcare Distribution
-              </span>
-              <span className="text-[10px] font-mono uppercase tracking-widest px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
-                CDSCO Compliant
-              </span>
+
+              {/* 3D WebGL Flow Real-Time Engine Indicator */}
+              <div className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full glass-pill border border-teal-300/60 shadow-xs text-teal-800 text-[10px] font-mono font-bold tracking-wider uppercase">
+                <Cpu className="w-3 h-3 text-teal-600 animate-pulse" />
+                <span>3D Kinetic Flow</span>
+              </div>
             </motion.div>
 
             {/* Main Headline */}

@@ -80,6 +80,8 @@ export interface Product {
   isFeatured?: boolean;
   itemCode?: string | null;
   distributorNotes?: string | null;
+  composition?: string;
+  requiresColdChain?: boolean;
   manufacturer: {
     id: string;
     name: string;

@@ -1,23 +1,14 @@
 import React from "react";
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import {
-  Package,
-  Layers,
-  ShieldCheck,
-  Truck,
-  ArrowRight,
-  PhoneCall,
-  Clock,
-  Sparkles,
-  MapPin,
-  CheckCircle2,
-  ChevronRight,
-  ExternalLink
-} from "lucide-react";
-import { fetchCompany } from "@/lib/api";
-import { ManufacturerLogo } from "@/components/common/ManufacturerLogo";
-import { CompanyKineticHero } from "@/components/home/CompanyKineticHero";
+import { fetchCompany, fetchCatalog } from "@/lib/api";
+import { Product, Company } from "@/types";
+import { CompanyModernHero } from "@/components/company/CompanyModernHero";
+import { CompanyKineticMarquee } from "@/components/company/CompanyKineticMarquee";
+import { CompanySupplySteps } from "@/components/company/CompanySupplySteps";
+import { CompanyModernCatalogSection } from "@/components/company/CompanyModernCatalogSection";
+import { CompanyDefinitionCard } from "@/components/company/CompanyDefinitionCard";
+import { CompanyDirectInquiryDesk } from "@/components/company/CompanyDirectInquiryDesk";
+import { PharmaSpatialVault } from "@/components/spatial/PharmaSpatialVault";
 
 interface CompanyHomePageProps {
   params: {
@@ -25,202 +16,337 @@ interface CompanyHomePageProps {
   };
 }
 
+// Fallback products in case backend is offline during pre-rendering
+const LAKSHMI_FALLBACK_PRODUCTS: Product[] = [
+  {
+    id: "prod-1",
+    name: "Dolo 650 Tablets",
+    slug: "dolo-650",
+    dosageForm: "Tablet",
+    packaging: "Strip of 15 Tablets",
+    composition: "Paracetamol IP 650mg",
+    storageConditions: "Store below 30°C in dry place",
+    itemCode: "DL-650-TAB",
+    manufacturer: { id: "mfg-1", name: "Micro Labs Ltd", slug: "micro-labs" },
+    requiresColdChain: false,
+    ingredients: [{ id: "ing-1", name: "Paracetamol", quantity: 650, unit: "mg", perBasis: "tablet", isPrimary: true }],
+    categories: [{ id: "cat-1", name: "Analgesics & Antipyretics", slug: "analgesics" }],
+  },
+  {
+    id: "prod-2",
+    name: "Augmentin 625 Duo",
+    slug: "augmentin-625",
+    dosageForm: "Tablet",
+    packaging: "Strip of 10 Tablets",
+    composition: "Amoxicillin 500mg + Clavulanic Acid 125mg",
+    storageConditions: "Store below 25°C protected from moisture",
+    itemCode: "AUG-625-DUO",
+    manufacturer: { id: "mfg-2", name: "GlaxoSmithKline", slug: "gsk" },
+    requiresColdChain: false,
+    ingredients: [
+      { id: "ing-2", name: "Amoxicillin", quantity: 500, unit: "mg", perBasis: "tablet", isPrimary: true },
+      { id: "ing-3", name: "Clavulanic Acid", quantity: 125, unit: "mg", perBasis: "tablet", isPrimary: false },
+    ],
+    categories: [{ id: "cat-2", name: "Antibiotics", slug: "antibiotics" }],
+  },
+  {
+    id: "prod-3",
+    name: "Calpol 500mg",
+    slug: "calpol-500",
+    dosageForm: "Tablet",
+    packaging: "Strip of 15 Tablets",
+    composition: "Paracetamol IP 500mg",
+    storageConditions: "Store below 30°C",
+    itemCode: "CAL-500-TAB",
+    manufacturer: { id: "mfg-2", name: "GlaxoSmithKline", slug: "gsk" },
+    requiresColdChain: false,
+    ingredients: [{ id: "ing-1", name: "Paracetamol", quantity: 500, unit: "mg", perBasis: "tablet", isPrimary: true }],
+    categories: [{ id: "cat-1", name: "Analgesics & Antipyretics", slug: "analgesics" }],
+  },
+  {
+    id: "prod-4",
+    name: "Pantocid 40 Tablets",
+    slug: "pantocid-40",
+    dosageForm: "Tablet",
+    packaging: "Strip of 15 Tablets",
+    composition: "Pantoprazole Sodium IP 40mg",
+    storageConditions: "Store protected from light & moisture",
+    itemCode: "PAN-40-TAB",
+    manufacturer: { id: "mfg-3", name: "Sun Pharma", slug: "sun-pharma" },
+    requiresColdChain: false,
+    ingredients: [{ id: "ing-4", name: "Pantoprazole", quantity: 40, unit: "mg", perBasis: "tablet", isPrimary: true }],
+    categories: [{ id: "cat-3", name: "Gastroenterology", slug: "gastro" }],
+  },
+  {
+    id: "prod-5",
+    name: "Azithral 500",
+    slug: "azithral-500",
+    dosageForm: "Tablet",
+    packaging: "Strip of 5 Tablets",
+    composition: "Azithromycin IP 500mg",
+    storageConditions: "Store below 25°C",
+    itemCode: "AZI-500-TAB",
+    manufacturer: { id: "mfg-4", name: "Alembic / Cipla", slug: "cipla" },
+    requiresColdChain: false,
+    ingredients: [{ id: "ing-5", name: "Azithromycin", quantity: 500, unit: "mg", perBasis: "tablet", isPrimary: true }],
+    categories: [{ id: "cat-2", name: "Antibiotics", slug: "antibiotics" }],
+  },
+  {
+    id: "prod-6",
+    name: "Telma 40 Tablets",
+    slug: "telma-40",
+    dosageForm: "Tablet",
+    packaging: "Strip of 30 Tablets",
+    composition: "Telmisartan IP 40mg",
+    storageConditions: "Store below 30°C",
+    itemCode: "TEL-40-TAB",
+    manufacturer: { id: "mfg-5", name: "Glenmark", slug: "glenmark" },
+    requiresColdChain: false,
+    ingredients: [{ id: "ing-6", name: "Telmisartan", quantity: 40, unit: "mg", perBasis: "tablet", isPrimary: true }],
+    categories: [{ id: "cat-4", name: "Cardiology", slug: "cardio" }],
+  },
+  {
+    id: "prod-7",
+    name: "Glycomet GP 2",
+    slug: "glycomet-gp2",
+    dosageForm: "Tablet",
+    packaging: "Strip of 15 Tablets",
+    composition: "Metformin 500mg + Glimepiride 2mg",
+    storageConditions: "Store below 25°C",
+    itemCode: "GLY-GP2-TAB",
+    manufacturer: { id: "mfg-6", name: "USV Private Limited", slug: "usv" },
+    requiresColdChain: false,
+    ingredients: [
+      { id: "ing-7", name: "Metformin", quantity: 500, unit: "mg", perBasis: "tablet", isPrimary: true },
+      { id: "ing-8", name: "Glimepiride", quantity: 2, unit: "mg", perBasis: "tablet", isPrimary: false },
+    ],
+    categories: [{ id: "cat-5", name: "Diabetology", slug: "diabetology" }],
+  },
+  {
+    id: "prod-8",
+    name: "Pan 40 Tablets",
+    slug: "pan-40",
+    dosageForm: "Tablet",
+    packaging: "Strip of 15 Tablets",
+    composition: "Pantoprazole IP 40mg",
+    storageConditions: "Store below 30°C",
+    itemCode: "PAN-40-ALK",
+    manufacturer: { id: "mfg-7", name: "Alkem Laboratories", slug: "alkem" },
+    requiresColdChain: false,
+    ingredients: [{ id: "ing-4", name: "Pantoprazole", quantity: 40, unit: "mg", perBasis: "tablet", isPrimary: true }],
+    categories: [{ id: "cat-3", name: "Gastroenterology", slug: "gastro" }],
+  },
+];
+
+const KOTHITTIL_FALLBACK_PRODUCTS: Product[] = [
+  {
+    id: "prod-k1",
+    name: "Human Regular Insulin 100IU",
+    slug: "human-insulin-100",
+    dosageForm: "Vial",
+    packaging: "10ml Injection Vial",
+    composition: "Recombinant Human Insulin IP 100 IU/ml",
+    storageConditions: "2°C to 8°C Cryo-Monitored (Do Not Freeze)",
+    itemCode: "INS-REG-10ML",
+    manufacturer: { id: "mfg-8", name: "Biocon / Novo", slug: "biocon" },
+    requiresColdChain: true,
+    ingredients: [{ id: "ing-9", name: "Human Insulin", quantity: 100, unit: "IU/ml", perBasis: "vial", isPrimary: true }],
+    categories: [{ id: "cat-6", name: "Biologics & Cold Chain", slug: "biologics" }],
+  },
+  {
+    id: "prod-k2",
+    name: "Trastuzumab 440mg Lyophilized",
+    slug: "trastuzumab-440",
+    dosageForm: "Vial",
+    packaging: "Single-dose 440mg Vial with Bacteriostatic Water",
+    composition: "Trastuzumab 440mg (Monoclonal Antibody)",
+    storageConditions: "2°C to 8°C Monitored Cold Chain",
+    itemCode: "TRAST-440-BIO",
+    manufacturer: { id: "mfg-9", name: "Roche / Zydus", slug: "zydus" },
+    requiresColdChain: true,
+    ingredients: [{ id: "ing-10", name: "Trastuzumab", quantity: 440, unit: "mg", perBasis: "vial", isPrimary: true }],
+    categories: [{ id: "cat-7", name: "Oncology & Monoclonals", slug: "oncology" }],
+  },
+  {
+    id: "prod-k3",
+    name: "Rabies Vaccine (Purified Chick Embryo Cell)",
+    slug: "rabies-vaccine",
+    dosageForm: "Vial",
+    packaging: "1 Dose Vial with Diluent & Syringe",
+    composition: "Inactivated Rabies Virus Antigens ≥ 2.5 IU",
+    storageConditions: "2°C to 8°C Cryo Monitored",
+    itemCode: "RAB-VAC-1DS",
+    manufacturer: { id: "mfg-10", name: "Serum Institute of India", slug: "serum-institute" },
+    requiresColdChain: true,
+    ingredients: [{ id: "ing-11", name: "Rabies Antigens", quantity: 2.5, unit: "IU", perBasis: "dose", isPrimary: true }],
+    categories: [{ id: "cat-6", name: "Biologics & Cold Chain", slug: "biologics" }],
+  },
+  {
+    id: "prod-k4",
+    name: "Meropenem 1g Injection",
+    slug: "meropenem-1g",
+    dosageForm: "Injection",
+    packaging: "Single Glass Vial for IV Infusion",
+    composition: "Meropenem Trihydrate IP eq. to Anhydrous Meropenem 1000mg",
+    storageConditions: "Store below 25°C protected from light",
+    itemCode: "MERO-1G-IV",
+    manufacturer: { id: "mfg-3", name: "Sun Pharma / Cipla", slug: "sun-pharma" },
+    requiresColdChain: false,
+    ingredients: [{ id: "ing-12", name: "Meropenem", quantity: 1000, unit: "mg", perBasis: "vial", isPrimary: true }],
+    categories: [{ id: "cat-8", name: "Critical Care Injections", slug: "critical-care" }],
+  },
+  {
+    id: "prod-k5",
+    name: "Enoxaparin 40mg Prefilled Syringe",
+    slug: "enoxaparin-40",
+    dosageForm: "PFS",
+    packaging: "0.4ml Prefilled Syringe with Safety Shield",
+    composition: "Enoxaparin Sodium IP 40mg / 0.4ml (Anti-Xa 4000 IU)",
+    storageConditions: "Store below 25°C (Do Not Freeze)",
+    itemCode: "ENOX-40-PFS",
+    manufacturer: { id: "mfg-11", name: "Sanofi India", slug: "sanofi" },
+    requiresColdChain: false,
+    ingredients: [{ id: "ing-13", name: "Enoxaparin Sodium", quantity: 40, unit: "mg", perBasis: "syringe", isPrimary: true }],
+    categories: [{ id: "cat-8", name: "Critical Care Injections", slug: "critical-care" }],
+  },
+  {
+    id: "prod-k6",
+    name: "Piperacillin & Tazobactam 4.5g",
+    slug: "pip-tazo-45",
+    dosageForm: "Injection",
+    packaging: "Single Vial for Intravenous Infusion",
+    composition: "Piperacillin 4000mg + Tazobactam 500mg",
+    storageConditions: "Store below 25°C",
+    itemCode: "PIP-TAZO-45",
+    manufacturer: { id: "mfg-7", name: "Alkem Laboratories", slug: "alkem" },
+    requiresColdChain: false,
+    ingredients: [
+      { id: "ing-14", name: "Piperacillin", quantity: 4000, unit: "mg", perBasis: "vial", isPrimary: true },
+      { id: "ing-15", name: "Tazobactam", quantity: 500, unit: "mg", perBasis: "vial", isPrimary: false },
+    ],
+    categories: [{ id: "cat-8", name: "Critical Care Injections", slug: "critical-care" }],
+  },
+  {
+    id: "prod-k7",
+    name: "Bevacizumab 100mg/4ml",
+    slug: "bevacizumab-100",
+    dosageForm: "Vial",
+    packaging: "4ml Single-use Sterile Infusion Vial",
+    composition: "Bevacizumab 100mg (25mg/ml)",
+    storageConditions: "2°C to 8°C Strictly Protected from Light",
+    itemCode: "BEVA-100-BIO",
+    manufacturer: { id: "mfg-9", name: "Zydus Lifesciences", slug: "zydus" },
+    requiresColdChain: true,
+    ingredients: [{ id: "ing-16", name: "Bevacizumab", quantity: 100, unit: "mg", perBasis: "vial", isPrimary: true }],
+    categories: [{ id: "cat-7", name: "Oncology & Monoclonals", slug: "oncology" }],
+  },
+  {
+    id: "prod-k8",
+    name: "Ceftriaxone 1g Sterile Injection",
+    slug: "ceftriaxone-1g",
+    dosageForm: "Injection",
+    packaging: "1 Vial with Sterile Water for Injection",
+    composition: "Ceftriaxone Sodium IP eq. to Ceftriaxone 1000mg",
+    storageConditions: "Store below 25°C",
+    itemCode: "CEFT-1G-IV",
+    manufacturer: { id: "mfg-4", name: "Cipla Ltd", slug: "cipla" },
+    requiresColdChain: false,
+    ingredients: [{ id: "ing-17", name: "Ceftriaxone", quantity: 1000, unit: "mg", perBasis: "vial", isPrimary: true }],
+    categories: [{ id: "cat-8", name: "Critical Care Injections", slug: "critical-care" }],
+  },
+];
+
 export default async function CompanyHomePage({ params }: CompanyHomePageProps) {
   const { companySlug } = params;
 
-  let company;
+  if (companySlug !== "lakshmi-pharma" && companySlug !== "kothittil-pharma") {
+    notFound();
+  }
+
+  let company: Company;
   try {
     company = await fetchCompany(companySlug);
   } catch (err) {
-    notFound();
+    company = {
+      id: companySlug,
+      slug: companySlug,
+      name:
+        companySlug === "lakshmi-pharma"
+          ? "Lakshmi Pharma"
+          : "The Kothittil Pharmaceutical Distributor",
+      shortName: companySlug === "lakshmi-pharma" ? "Lakshmi" : "The Kothittil",
+      accentColor: companySlug === "lakshmi-pharma" ? "teal" : "blue",
+      tagline:
+        companySlug === "lakshmi-pharma"
+          ? "Authorized Ethical & Generics Pharmaceutical Distribution"
+          : "Specialty Therapeutics, Critical Care & Institutional Supply",
+      description:
+        companySlug === "lakshmi-pharma"
+          ? "Founded in 1998, Lakshmi Pharma supplies 1,400+ verified retail pharmacies and clinical establishments across South India with same-day dispatch and 99.4% order fill rates."
+          : "Established in 2005, The Kothittil Pharmaceutical Distributor specializes in cold-chain logistics, cardiology, oncology, and emergency critical care lines for premier tertiary hospitals.",
+      serviceAreas: "South India Regional Healthcare Distribution",
+      address:
+        companySlug === "lakshmi-pharma"
+          ? "Door No. 42/1892, Pharma Trade Complex, Market Road, Kochi, Kerala - 682035"
+          : "Plot 14B, Healthcare Logistics Hub, NH 66 Bypass, Thiruvananthapuram, Kerala - 695024",
+      phone: companySlug === "lakshmi-pharma" ? "+91 484 235 6789" : "+91 471 245 8890",
+      email: companySlug === "lakshmi-pharma" ? "orders@lakshmipharma.demo" : "supply@kothittilpharma.demo",
+      whatsapp: companySlug === "lakshmi-pharma" ? "+91 94471 23456" : "+91 98460 78901",
+      businessHours: "Monday to Saturday: 8:30 AM - 7:30 PM",
+      drugLicenseNo: "KL-REG-2024-DL-10928A / 10928B",
+      gstin: "32AAAAA0000A1Z5",
+      isActive: true,
+    } as Company;
+  }
+
+  // Fetch real products or fallback
+  let products: Product[] = [];
+  try {
+    const catalogData = await fetchCatalog(companySlug, { limit: 12 });
+    if (catalogData && catalogData.products && catalogData.products.length > 0) {
+      products = catalogData.products;
+    } else {
+      products = companySlug === "lakshmi-pharma" ? LAKSHMI_FALLBACK_PRODUCTS : KOTHITTIL_FALLBACK_PRODUCTS;
+    }
+  } catch (e) {
+    products = companySlug === "lakshmi-pharma" ? LAKSHMI_FALLBACK_PRODUCTS : KOTHITTIL_FALLBACK_PRODUCTS;
   }
 
   const isLakshmi = company.slug === "lakshmi-pharma";
 
   return (
-    <div className="space-y-16 pb-20">
+    <div className="space-y-12 sm:space-y-16 pb-16">
       
-      {/* 1. Kinetic Hero Section with 3D Floating Pharmaceutical Centerpiece */}
-      <CompanyKineticHero company={company} />
+      {/* 1. bar-topas.ch Inspired Hero with Giant Typographic Identity, Circular Stamp & Direct CTAs */}
+      <CompanyModernHero company={company} />
 
-      {/* 2. Featured Formulations for this Company with 3D Card Hover */}
-      {company.featuredProducts && company.featuredProducts.length > 0 && (
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-            <div>
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-slate-100 text-slate-600 border border-slate-200 mb-2">
-                <Sparkles className={`w-3.5 h-3.5 ${isLakshmi ? "text-emerald-600" : "text-blue-600"}`} />
-                <span>Priority Dispatched Formulations</span>
-              </div>
-              <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-                High-Demand Pharmaceuticals in {company.shortName}
-              </h2>
-            </div>
+      {/* 2. bar-topas.ch Inspired Dual Opposing Kinetic Marquee */}
+      <CompanyKineticMarquee themeColor={isLakshmi ? "emerald" : "blue"} />
 
-            <Link
-              href={`/${companySlug}/products`}
-              className={`text-xs font-bold inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white border border-slate-200 shadow-2xs hover:shadow-xs transition-all hover:scale-102 ${
-                isLakshmi ? "text-teal-700 hover:text-teal-800" : "text-blue-700 hover:text-blue-800"
-              }`}
-            >
-              <span>View full catalog ({company.stats?.totalProducts ?? 8}+ items)</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-          </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
+        
+        {/* 3. bar-topas.ch Inspired 4-Step Procurement Breakdown (01, 02, 03, 04) */}
+        <CompanySupplySteps 
+          companyName={company.shortName} 
+          themeColor={isLakshmi ? "emerald" : "blue"} 
+        />
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {company.featuredProducts.map((fp) => (
-              <div
-                key={fp.id}
-                className="group relative bg-white rounded-2xl border border-slate-200/90 p-6 shadow-xs hover:shadow-xl hover:border-slate-300 transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between space-y-5 overflow-hidden"
-              >
-                {/* Subtle Hover Gradient Glow */}
-                <div 
-                  className={`absolute -top-16 -right-16 w-36 h-36 rounded-full blur-2xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
-                    isLakshmi ? "bg-emerald-100/70" : "bg-blue-100/70"
-                  }`} 
-                />
+        {/* 4. juliamoresco.com.br Inspired Interactive Cleanroom & Cold-Chain Vault */}
+        <PharmaSpatialVault company={company} />
 
-                <div className="space-y-3 relative z-10">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <Link
-                        href={`/${companySlug}/products/${fp.slug}`}
-                        className={`font-black text-base sm:text-lg text-slate-900 transition-colors tracking-tight ${
-                          isLakshmi ? "group-hover:text-teal-700" : "group-hover:text-blue-700"
-                        }`}
-                      >
-                        {fp.name}
-                      </Link>
-                      {fp.itemCode && (
-                        <p className="text-[10px] font-mono text-slate-400 mt-0.5">SKU: {fp.itemCode}</p>
-                      )}
-                    </div>
-                    <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200 shrink-0">
-                      {fp.dosageForm}
-                    </span>
-                  </div>
+        {/* 5. Digital Marketing Product Catalog with Numbered Cards & Specimen Dossier Modal */}
+        <CompanyModernCatalogSection 
+          company={company} 
+          products={products} 
+        />
 
-                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/70 text-xs">
-                    <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">
-                      Active Molecule &amp; Composition
-                    </span>
-                    <span className="font-bold text-slate-800">{fp.composition}</span>
-                  </div>
+        {/* 5. bar-topas.ch Inspired Dictionary Definition Stamp Card */}
+        <CompanyDefinitionCard company={company} />
 
-                  <div className="space-y-1.5 pt-1 text-xs">
-                    <div className="flex items-center justify-between text-slate-600">
-                      <span className="text-slate-400 font-medium">Manufacturer:</span>
-                      <span className="font-bold text-slate-800">{fp.manufacturer.name}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-slate-600">
-                      <span className="text-slate-400 font-medium">Packaging Unit:</span>
-                      <span className="font-semibold text-slate-800">{fp.packaging}</span>
-                    </div>
-                  </div>
-                </div>
+        {/* 6. Lead Capture & Instant Commercial Inquiry Desk */}
+        <CompanyDirectInquiryDesk company={company} />
 
-                <div className="pt-4 border-t border-slate-100 flex items-center gap-2 relative z-10">
-                  <Link
-                    href={`/${companySlug}/products/${fp.slug}`}
-                    className="flex-1 text-center py-2.5 rounded-xl text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-colors"
-                  >
-                    View Specs
-                  </Link>
-                  <Link
-                    href={`/${companySlug}/contact`}
-                    className={`flex-1 text-center py-2.5 rounded-xl text-xs font-bold text-white shadow-xs transition-all hover:scale-102 ${
-                      isLakshmi
-                        ? "bg-teal-700 hover:bg-teal-800 shadow-teal-700/20"
-                        : "bg-blue-700 hover:bg-blue-800 shadow-blue-700/20"
-                    }`}
-                  >
-                    Enquire B2B
-                  </Link>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* 3. Operational Coverage Hub & Compliance Glassmorphic Container */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="glass-panel rounded-3xl border border-slate-200/90 p-8 sm:p-12 shadow-xl space-y-8">
-          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500">
-            <MapPin className={`w-4 h-4 ${isLakshmi ? "text-emerald-600" : "text-blue-600"}`} />
-            <span>Operational Hub &amp; Regulatory Standard</span>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
-            <div className="space-y-4">
-              <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-                Transit Routes &amp; Distribution Radius
-              </h3>
-              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                {company.serviceAreas}
-              </p>
-
-              <div className="p-5 rounded-2xl bg-white/80 border border-slate-200/80 shadow-2xs space-y-2.5 text-xs text-slate-700">
-                <p className="flex items-center justify-between">
-                  <span className="text-slate-400 font-medium">Warehouse Facility:</span>
-                  <span className="font-bold text-slate-800 text-right">{company.address}</span>
-                </p>
-                <p className="flex items-center justify-between">
-                  <span className="text-slate-400 font-medium">Dispatch Operations:</span>
-                  <span className="font-bold text-slate-800">{company.businessHours}</span>
-                </p>
-                <p className="flex items-center justify-between">
-                  <span className="text-slate-400 font-medium">Trade Desk Direct:</span>
-                  <span className="font-bold font-mono text-slate-800">{company.phone}</span>
-                </p>
-                <p className="flex items-center justify-between">
-                  <span className="text-slate-400 font-medium">Orders Processing:</span>
-                  <span className="font-bold font-mono text-teal-700">{company.email}</span>
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-                Drug License Compliance Assurance
-              </h3>
-              <div className="space-y-3 text-xs text-slate-600">
-                <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-white/70 border border-slate-200/60">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                  <span>
-                    Licensed wholesale distribution under Forms 20B/21B of Drugs and Cosmetics Act. Strictly B2B dispensing to licensed healthcare institutions.
-                  </span>
-                </div>
-                <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-white/70 border border-slate-200/60">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                  <span>
-                    100% manufacturer warranty backed batch verification with digital GST wholesale invoices.
-                  </span>
-                </div>
-                <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-white/70 border border-slate-200/60">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                  <span>
-                    Active temperature logging protocol with cold-chain audit tags generated for vaccines and biologicals.
-                  </span>
-                </div>
-              </div>
-
-              <div className="pt-2">
-                <Link
-                  href={`/${companySlug}/about`}
-                  className={`text-xs font-bold inline-flex items-center gap-1.5 ${
-                    isLakshmi ? "text-teal-700 hover:text-teal-800" : "text-blue-700 hover:text-blue-800"
-                  }`}
-                >
-                  <span>Learn more about {company.shortName}&apos;s storage infrastructure</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      </div>
 
     </div>
   );

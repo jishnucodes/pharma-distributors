@@ -23,9 +23,57 @@ const PARTNERS: Partner[] = [
   { name: "Torrent Pharmaceuticals", category: "CNS & Cardiovascular", authorizedSince: "2009" },
 ];
 
-export function KineticPartnerMarquee() {
+interface KineticPartnerMarqueeProps {
+  compact?: boolean;
+}
+
+export function KineticPartnerMarquee({ compact = false }: KineticPartnerMarqueeProps) {
   // Duplicate for seamless infinite marquee loop
   const duplicatedPartners = [...PARTNERS, ...PARTNERS, ...PARTNERS];
+
+  if (compact) {
+    return (
+      <div className="pt-6 pb-2 w-full overflow-hidden relative">
+        <div className="flex items-center justify-between mb-3 px-2">
+          <div className="flex items-center gap-2 text-[11px] font-mono uppercase tracking-widest text-slate-500 font-bold">
+            <Award className="w-3.5 h-3.5 text-teal-600" />
+            <span>Authorized Manufacturer Alliances</span>
+          </div>
+          <span className="text-[10px] font-mono text-slate-400 hidden sm:inline">
+            Direct Commercial Supply Covenants
+          </span>
+        </div>
+
+        {/* Marquee Container with Gradient Fade Edges */}
+        <div className="relative w-full overflow-hidden">
+          <div className="absolute top-0 bottom-0 left-0 w-16 sm:w-28 bg-gradient-to-r from-slate-50/90 to-transparent z-10 pointer-events-none" />
+          <div className="absolute top-0 bottom-0 right-0 w-16 sm:w-28 bg-gradient-to-l from-slate-50/90 to-transparent z-10 pointer-events-none" />
+
+          <div className="flex w-max animate-marquee hover:[animation-play-state:paused] gap-3 sm:gap-4 py-1">
+            {duplicatedPartners.map((partner, index) => (
+              <div
+                key={`${partner.name}-${index}`}
+                className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl glass-panel border border-slate-200/90 shadow-2xs hover:shadow-xs hover:border-teal-500/50 transition-all duration-200 shrink-0 group"
+              >
+                <div className="w-7 h-7 rounded-lg bg-white flex items-center justify-center p-1 border border-slate-200/70 shrink-0 shadow-2xs group-hover:border-teal-500/40 transition-colors">
+                  <ManufacturerLogo name={partner.name} logoUrl={partner.logoUrl} size="sm" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-slate-900 tracking-tight group-hover:text-teal-700 transition-colors flex items-center gap-1">
+                    <span>{partner.name}</span>
+                    <ShieldCheck className="w-2.5 h-2.5 text-teal-600 shrink-0" />
+                  </div>
+                  <div className="text-[9px] font-mono text-slate-400 truncate max-w-[140px]">
+                    {partner.category}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <section className="py-16 bg-slate-50/70 border-y border-slate-200/80 overflow-hidden relative">
