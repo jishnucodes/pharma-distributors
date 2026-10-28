@@ -1,23 +1,6 @@
-import React from "react";
-import { notFound } from "next/navigation";
-import { fetchCompany } from "@/lib/api";
-import { CompanyAboutView } from "@/components/about/CompanyAboutView";
+import { redirect } from "next/navigation";
 
-interface AboutPageProps {
-  params: {
-    companySlug: string;
-  };
-}
-
-export default async function CompanyAboutPage({ params }: AboutPageProps) {
-  const { companySlug } = params;
-
-  let company;
-  try {
-    company = await fetchCompany(companySlug);
-  } catch (err) {
-    notFound();
-  }
-
-  return <CompanyAboutView company={company} />;
+/** About content now lives on the company overview page. */
+export default function AboutPage({ params }: { params: { companySlug: string } }) {
+  redirect(`/${params.companySlug}#about`);
 }

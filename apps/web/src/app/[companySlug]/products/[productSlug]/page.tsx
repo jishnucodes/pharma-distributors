@@ -1,434 +1,274 @@
-"use client";
-
-import React, { useState, useEffect } from "react";
+import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound, useParams } from "next/navigation";
-import {
-  Package,
-  Layers,
-  ShieldAlert,
-  ArrowLeft,
-  MessageSquare,
-  Building2,
-  FileText,
-  AlertCircle,
-  ExternalLink,
-  ChevronRight,
-  Info,
-  ThermometerSnowflake,
-  Sparkles,
-  ShieldCheck,
-  CheckCircle2,
-  Check,
-  Plus,
-} from "lucide-react";
-import { motion } from "framer-motion";
-import { Product, Company } from "@/types";
+import { notFound } from "next/navigation";
+import { ChevronRight, Phone, MessageCircle, ExternalLink, Snowflake, ArrowRight } from "lucide-react";
 import { fetchProduct } from "@/lib/api";
+import { compositionOf, telHref, whatsappHref } from "@/lib/companies";
+import { getCompany } from "@/lib/server";
+import { AddToEnquiryButton } from "@/components/inquiry/AddToEnquiryButton";
+import { ProductEnquiryPanel } from "@/components/inquiry/ProductEnquiryPanel";
 import { ManufacturerLogo } from "@/components/common/ManufacturerLogo";
-import { ProductDetailSkeleton } from "@/components/common/ModernLoadingSkeleton";
-import { useInquiry } from "@/components/inquiry/InquiryContext";
+import { DoseIcon } from "@/components/ui/DoseIcon";
 
-export default function ProductDetailPage() {
-  const params = useParams();
-  const companySlug = params.companySlug as string;
-  const productSlug = params.productSlug as string;
+type Params = { params: { companySlug: string; productSlug: string } };
 
-  const [productData, setProductData] = useState<{ company: Company; data: Product } | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const { addItem, removeItem, isInTray, openInquiry } = useInquiry();
-
-  const isLakshmi = companySlug === "lakshmi-pharma";
-  const accentColor = isLakshmi ? "teal" : "blue";
-
-  useEffect(() => {
-    async function loadProduct() {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await fetchProduct(companySlug, productSlug);
-        setProductData(res);
-      } catch (err: any) {
-        setError(err.message || "Failed to load product");
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadProduct();
-  }, [companySlug, productSlug]);
-
-  if (loading) {
-    return <ProductDetailSkeleton accentColor={accentColor} />;
+async function load(companySlug: string, productSlug: string) {
+  try {
+    return await fetchProduct(companySlug, productSlug);
+  } catch {
+    return null;
   }
+}
 
-  if (error || !productData) {
-    return (
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center space-y-4">
-        <div className="w-12 h-12 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center mx-auto">
-          <AlertCircle className="w-6 h-6" />
-        </div>
-        <h2 className="text-xl font-bold text-slate-900">Product Not Available</h2>
-        <p className="text-xs text-slate-600 max-w-md mx-auto">
-          {error || "This product is not listed in the selected distributor's active catalog."}
-        </p>
-        <Link
-          href={`/${companySlug}/products`}
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold text-white bg-slate-800 hover:bg-slate-900"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" />
-          <span>Back to Catalog</span>
-        </Link>
-      </div>
-    );
-  }
+export async function generateMetadata({ params }: Params): Promise<Metadata> {
+  const res = await load(params.companySlug, params.productSlug);
+  if (!res) return { title: "Product not found" };
+  return {
+    title: res.data.name,
+    description: `${res.data.name} by ${res.data.manufacturer.name} — ${compositionOf(res.data)}. ${res.data.packaging}.`,
+  };
+}
 
-  const { company, data: product } = productData;
-  const matchingComposition = product.matchingComposition;
+export default async function ProductPage({ params }: Params) {
+  const { companySlug, productSlug } = params;
+  const [res, company] = await Promise.all([load(companySlug, productSlug), getCompany(companySlug)]);
+  if (!res) notFound();
+  const product = res.data;
+  const matches = product.matchingComposition?.matches ?? [];
+  const whatsappText = `Hello ${company.name}, please share price and stock for ${product.name} (${product.manufacturer.name}, ${product.packaging}).`;
+
+  const specs: Array<{ label: string; value: React.ReactNode }> = [
+    { label: "Form", value: product.dosageForm },
+    {
+      label: "Strength",
+      value: product.ingredients.length
+        ? product.ingredients.map((i) => `${i.name} ${i.quantity} ${i.unit} ${i.perBasis}`).join(", ")
+        : compositionOf(product),
+    },
+    { label: "Pack", value: product.packaging },
+    { label: "Manufacturer", value: product.manufacturer.name },
+    product.storageConditions && { label: "Storage", value: product.storageConditions },
+    product.schedule && { label: "Schedule", value: product.schedule },
+    product.itemCode && { label: "Item code", value: <span className="font-mono">{product.itemCode}</span> },
+    product.categories.length > 0 && {
+      label: "Category",
+      value: (
+        <span className="flex flex-wrap gap-2">
+          {product.categories.map((c) => (
+            <Link
+              key={c.id}
+              href={`/${companySlug}/products?category=${c.slug}`}
+              className="rounded-full bg-accent-soft px-3 py-1 text-sm font-semibold text-accent-deep hover:underline"
+            >
+              {c.name}
+            </Link>
+          ))}
+        </span>
+      ),
+    },
+  ].filter(Boolean) as Array<{ label: string; value: React.ReactNode }>;
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-      {/* 1. Breadcrumb navigation */}
-      <nav className="flex items-center gap-2 text-xs text-slate-500">
-        <Link href={`/${companySlug}`} className="hover:text-slate-900">
-          {company.name}
-        </Link>
-        <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-        <Link href={`/${companySlug}/products`} className="hover:text-slate-900 transition-colors">
+    <div className="container-wide pb-16 pt-4 sm:pt-6">
+      <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-1 text-base text-ink-mute">
+        <Link href={`/${companySlug}/products`} className="inline-flex min-h-[44px] items-center font-semibold hover:text-ink">
           Products
         </Link>
-        <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-        <span className="font-bold text-slate-900 truncate">{product.name}</span>
+        <ChevronRight className="h-4 w-4" aria-hidden="true" />
+        <Link
+          href={`/${companySlug}/products?dosageForm=${encodeURIComponent(product.dosageForm)}`}
+          className="inline-flex min-h-[44px] items-center font-semibold hover:text-ink"
+        >
+          {product.dosageForm}
+        </Link>
       </nav>
 
-      {/* 2. Main Product Information Card with Ambient Glow and Kinetic Spring */}
-      <motion.div 
-        initial={{ opacity: 0, y: 15 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-        className="relative"
-      >
-        {/* Soft Ambient Behind Card */}
-        <div 
-          className={`absolute -top-12 -right-12 w-72 h-72 rounded-full blur-3xl pointer-events-none -z-10 ${
-            isLakshmi ? "bg-teal-100/50" : "bg-blue-100/50"
-          }`} 
-        />
-
-        <div className="bg-white/90 backdrop-blur-md rounded-3xl border border-slate-200/90 p-6 sm:p-10 shadow-lg space-y-6">
-          {/* Top Header: Brand Name + Actions */}
-          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-6 border-b border-slate-100">
-            <div className="space-y-2.5">
+      <div className="mt-2 grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-10">
+        <div className="min-w-0 space-y-6">
+          {/* Pack label: the product's identity without needing a photo */}
+          <header className="relative overflow-hidden rounded-4xl border border-line bg-white shadow-card">
+            <div className="h-2 bg-accent" aria-hidden="true" />
+            <DoseIcon
+              form={product.dosageForm}
+              className="pointer-events-none absolute -right-6 -top-2 h-48 w-48 text-accent opacity-[0.08] sm:h-64 sm:w-64"
+            />
+            <div className="relative p-5 sm:p-8">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200 uppercase tracking-wider">
-                  {product.dosageForm}
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-accent-soft px-3 py-1 text-sm font-semibold text-accent-deep">
+                  <DoseIcon form={product.dosageForm} className="h-4 w-4" /> {product.dosageForm}
                 </span>
                 {product.schedule && (
-                  <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                  <span className="rounded-full border border-line px-3 py-1 text-sm font-semibold text-ink-soft">
                     {product.schedule}
                   </span>
                 )}
-                {product.isFeatured && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                    <Sparkles className="w-3 h-3 text-emerald-600" />
-                    <span>Featured Formulation</span>
+                {product.requiresColdChain && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-sky-50 px-3 py-1 text-sm font-semibold text-sky-800">
+                    <Snowflake className="h-4 w-4" /> Cold chain
                   </span>
                 )}
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-mono font-bold bg-cyan-50 text-cyan-800 border border-cyan-200">
-                  <ShieldCheck className="w-3 h-3 text-cyan-600" />
-                  <span>Verified Batch Stock</span>
-                </span>
               </div>
 
-              <h1 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
+              <h1 className="mt-4 font-display text-4xl font-semibold leading-[1.05] tracking-tight sm:text-6xl">
                 {product.name}
               </h1>
+              <div className="mt-3 flex flex-wrap items-center gap-3 text-lg text-ink-soft">
+                <ManufacturerLogo name={product.manufacturer.name} logoUrl={product.manufacturer.logoUrl} size="sm" />
+                <span>by {product.manufacturer.name}</span>
+              </div>
 
-              {product.itemCode && (
-                <p className="text-xs font-mono text-slate-400">
-                  Distributor SKU / Code: <strong className="text-slate-700">{product.itemCode}</strong>
+              <div className="mt-6 border-t border-dashed border-line pt-5">
+                <p className="text-sm font-bold uppercase tracking-[0.12em] text-ink-mute">Composition</p>
+                {product.ingredients.length > 0 ? (
+                  <ul className="mt-3 flex flex-wrap gap-2">
+                    {product.ingredients.map((ing) => (
+                      <li key={ing.id} className="inline-flex items-baseline gap-2 rounded-2xl bg-paper px-4 py-2.5">
+                        <span className="text-xl font-bold">{ing.name}</span>
+                        <span className="text-xl font-bold text-accent-deep">
+                          {ing.quantity} {ing.unit}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="mt-2 text-xl font-bold">{compositionOf(product) || "—"}</p>
+                )}
+                {product.ingredients.some((i) => i.aliases?.length) && (
+                  <p className="mt-3 text-base text-ink-mute">
+                    Also known as:{" "}
+                    {product.ingredients
+                      .filter((i) => i.aliases?.length)
+                      .map((i) => `${i.name} — ${i.aliases!.join(", ")}`)
+                      .join("; ")}
+                  </p>
+                )}
+              </div>
+              <p className="mt-5 text-base text-ink-mute">{product.packaging}</p>
+            </div>
+          </header>
+
+          {/* Enquiry panel sits right under the label on phones */}
+          <div className="lg:hidden">
+            <ProductEnquiryPanel product={product} company={company} />
+          </div>
+
+          <section aria-labelledby="spec-h" className="overflow-hidden rounded-3xl border border-line bg-white">
+            <h2
+              id="spec-h"
+              className="border-b border-line bg-paper/70 px-5 py-3.5 text-sm font-bold uppercase tracking-[0.08em] text-ink-mute"
+            >
+              Product details
+            </h2>
+            <dl className="divide-y divide-line">
+              {specs.map((s) => (
+                <div key={s.label} className="grid gap-1 px-5 py-3.5 sm:grid-cols-[11rem_1fr] sm:gap-4">
+                  <dt className="text-base font-semibold text-ink-mute">{s.label}</dt>
+                  <dd className="text-base font-semibold leading-snug">{s.value}</dd>
+                </div>
+              ))}
+            </dl>
+          </section>
+
+          {(product.description || product.distributorNotes) && (
+            <section className="space-y-3 text-lg leading-relaxed text-ink-soft">
+              <h2 className="font-display text-2xl font-semibold text-ink">About this product</h2>
+              {product.description && <p>{product.description}</p>}
+              {product.distributorNotes && (
+                <p className="rounded-2xl border-l-4 border-accent bg-white p-4 text-base">
+                  <span className="font-bold text-ink">Note from {company.shortName}: </span>
+                  {product.distributorNotes}
                 </p>
               )}
-            </div>
+            </section>
+          )}
 
-            <div className="flex flex-col sm:items-end gap-2.5 shrink-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (isInTray(product.id)) {
-                      removeItem(product.id);
-                    } else {
-                      addItem(product);
-                    }
-                  }}
-                  className={`inline-flex items-center justify-center gap-1.5 px-4 py-3 rounded-xl text-xs font-bold transition-all active:scale-98 cursor-pointer ${
-                    isInTray(product.id)
-                      ? "bg-emerald-50 text-emerald-800 border border-emerald-300 shadow-2xs"
-                      : "bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200"
-                  }`}
-                >
-                  {isInTray(product.id) ? (
-                    <>
-                      <Check className="w-4 h-4 text-emerald-600" />
-                      <span>In Inquiry Tray &bull; Added</span>
-                    </>
-                  ) : (
-                    <>
-                      <Plus className="w-4 h-4 text-slate-600" />
-                      <span>+ Add to Inquiry Tray</span>
-                    </>
-                  )}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (!isInTray(product.id)) addItem(product);
-                    openInquiry(product);
-                  }}
-                  className={`inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-xs sm:text-sm font-bold text-white shadow-md transition-all hover:scale-102 active:scale-98 cursor-pointer ${
-                    isLakshmi
-                      ? "bg-teal-700 hover:bg-teal-800 shadow-teal-700/20"
-                      : "bg-blue-700 hover:bg-blue-800 shadow-blue-700/20"
-                  }`}
-                >
-                  <MessageSquare className="w-4 h-4" />
-                  <span>Enquire Now</span>
-                </button>
-              </div>
-              <span className="text-[10px] text-slate-400">
-                Commercial wholesale rates quoted directly by licensed trade desk
-              </span>
-            </div>
-          </div>
-
-        {/* Product Specification Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs">
-          {/* Col 1: Manufacturer */}
-          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-              Authorized Manufacturer
-            </span>
-            <ManufacturerLogo
-              name={product.manufacturer.name}
-              logoUrl={product.manufacturer.logoUrl}
-              size="md"
-            />
-            <p className="text-xs font-bold text-slate-900 pt-1">
-              {product.manufacturer.name}
-            </p>
-            {product.manufacturer.website && (
-              <a
-                href={product.manufacturer.website}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-[11px] text-blue-600 hover:underline"
-              >
-                <span>Manufacturer website</span>
-                <ExternalLink className="w-3 h-3" />
-              </a>
-            )}
-          </div>
-
-          {/* Col 2: Packaging & Storage */}
-          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-              Packaging &amp; Storage
-            </span>
-            <p className="text-xs text-slate-800">
-              <strong>Trade Packaging:</strong> {product.packaging}
-            </p>
-            <p className="text-xs text-slate-800">
-              <strong>Storage:</strong> {product.storageConditions || "Store below 30°C in a dry place."}
-            </p>
-            {product.distributorNotes && (
-              <p className="text-xs text-slate-600 italic">
-                Note: {product.distributorNotes}
-              </p>
-            )}
-          </div>
-
-          {/* Col 3: Distributor Context */}
-          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-              Listing Distributor
-            </span>
-            <p className="text-xs font-bold text-slate-900">{company.name}</p>
-            <p className="text-[11px] text-slate-600">
-              {company.phone} • {company.email}
-            </p>
-            <p className="text-[10px] font-mono text-slate-500">
-              DL: {company.drugLicenseNo || "KL-REG-2024 (DEMO)"}
-            </p>
-          </div>
+          {product.manufacturer.website && (
+            <a
+              href={product.manufacturer.website}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex min-h-[44px] items-center gap-2 text-base font-semibold text-ink-soft hover:text-ink"
+            >
+              {product.manufacturer.name} website <ExternalLink className="h-4 w-4" />
+            </a>
+          )}
         </div>
 
-        {/* 3. Structured Composition Table */}
-        <div className="space-y-3 pt-2">
-          <div className="flex items-center justify-between">
-            <h3 className="font-bold text-sm text-slate-900 tracking-tight flex items-center gap-2">
-              <FileText className="w-4 h-4 text-slate-500" />
-              <span>Active Pharmaceutical Ingredients (Structured Composition)</span>
-            </h3>
-            <span className="text-[11px] text-slate-400">
-              {product.ingredients.length} active substance{product.ingredients.length > 1 ? "s" : ""}
-            </span>
-          </div>
+        <aside className="hidden lg:sticky lg:top-24 lg:block">
+          <ProductEnquiryPanel product={product} company={company} />
+        </aside>
+      </div>
 
-          <div className="overflow-x-auto scrollbar-thin rounded-xl border border-slate-200 text-xs">
-            <table className="w-full min-w-[500px] text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-100 text-slate-600 uppercase text-[10px] font-bold tracking-wider border-b border-slate-200">
-                  <th className="py-2.5 px-4">Active Ingredient (Canonical)</th>
-                  <th className="py-2.5 px-4">Strength / Quantity</th>
-                  <th className="py-2.5 px-4">Applicable Basis</th>
-                  <th className="py-2.5 px-4">Known Aliases / Synonyms</th>
+      {matches.length > 0 && (
+        <section className="mt-14" aria-labelledby="alt-h">
+          <h2 id="alt-h" className="font-display text-3xl font-semibold tracking-tight">
+            Same composition, other brands
+          </h2>
+          {product.matchingComposition?.disclaimer && (
+            <p className="mt-2 max-w-3xl text-base text-ink-mute">{product.matchingComposition.disclaimer}</p>
+          )}
+          <div className="mt-5 overflow-hidden rounded-3xl border border-line bg-white shadow-card">
+            <table className="w-full text-left">
+              <thead className="border-b border-line bg-paper/70">
+                <tr className="text-sm font-bold uppercase tracking-[0.08em] text-ink-mute">
+                  <th scope="col" className="py-3.5 pl-5 pr-3">Product</th>
+                  <th scope="col" className="hidden px-3 py-3.5 md:table-cell">Manufacturer</th>
+                  <th scope="col" className="hidden px-3 py-3.5 lg:table-cell">Pack</th>
+                  <th scope="col" className="py-3.5 pl-3 pr-5">
+                    <span className="sr-only">View</span>
+                  </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 bg-white">
-                {product.ingredients.map((ing) => (
-                  <tr key={ing.id} className="hover:bg-slate-50/80">
-                    <td className="py-3 px-4 font-bold text-slate-900">
-                      {ing.name}
+              <tbody className="divide-y divide-line">
+                {matches.map((m) => (
+                  <tr key={m.id} className="hover:bg-accent-soft/35">
+                    <td className="py-4 pl-5 pr-3">
+                      <Link href={`/${companySlug}/products/${m.slug}`} className="text-lg font-bold hover:underline">
+                        {m.name}
+                      </Link>
+                      <p className="text-sm text-ink-mute">{m.compositionSummary}</p>
+                      <p className="text-sm text-ink-mute md:hidden">{m.manufacturer.name}</p>
                     </td>
-                    <td className="py-3 px-4 font-semibold text-emerald-700">
-                      {ing.quantity} {ing.unit}
-                    </td>
-                    <td className="py-3 px-4 text-slate-600">{ing.perBasis}</td>
-                    <td className="py-3 px-4 text-slate-500">
-                      {ing.aliases && ing.aliases.length > 0 ? (
-                        <div className="flex flex-wrap gap-1">
-                          {ing.aliases.map((a, idx) => (
-                            <span
-                              key={idx}
-                              className="px-1.5 py-0.5 rounded bg-slate-100 text-[10px] text-slate-600 font-mono"
-                            >
-                              {a}
-                            </span>
-                          ))}
-                        </div>
-                      ) : (
-                        "—"
-                      )}
+                    <td className="hidden px-3 py-4 text-base md:table-cell">{m.manufacturer.name}</td>
+                    <td className="hidden px-3 py-4 text-sm text-ink-soft lg:table-cell">{m.packaging}</td>
+                    <td className="py-4 pl-3 pr-5 text-right">
+                      <Link
+                        href={`/${companySlug}/products/${m.slug}`}
+                        className="inline-grid h-11 w-11 place-items-center rounded-full border-2 border-ink/10 hover:border-ink/30"
+                        aria-label={`View ${m.name}`}
+                      >
+                        <ArrowRight className="h-5 w-5" />
+                      </Link>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        </div>
+        </section>
+      )}
 
-        {/* Product Description */}
-        {product.description && (
-          <div className="space-y-2 pt-2 text-xs">
-            <h4 className="font-bold text-slate-900 uppercase tracking-wider text-[11px]">
-              Formulation Notes &amp; Clinical Description
-            </h4>
-            <p className="text-slate-600 leading-relaxed bg-slate-50/60 p-4 rounded-xl border border-slate-100">
-              {product.description}
-            </p>
-          </div>
-        )}
+      {/* Phones: keep the main actions in reach while reading */}
+      <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-30 border-t border-line bg-paper/95 px-4 py-3 backdrop-blur lg:hidden">
+        <div className="flex gap-2">
+          <AddToEnquiryButton product={product} className="flex-1" />
+          <a href={telHref(company.phone)} className="btn-outline px-4" aria-label={`Call ${company.name}`}>
+            <Phone className="h-5 w-5" />
+          </a>
+          {company.whatsapp && (
+            <a
+              href={whatsappHref(company.whatsapp, whatsappText)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-outline px-4"
+              aria-label="Ask on WhatsApp"
+            >
+              <MessageCircle className="h-5 w-5" />
+            </a>
+          )}
+        </div>
       </div>
-    </motion.div>
-
-      {/* ============================================================ */}
-      {/* 4. PRODUCTS WITH MATCHING COMPOSITION SECTION                */}
-      {/* Required section: matches ingredients, strengths & dosageForm */}
-      {/* Shows each match separately with its manufacturer.            */}
-      {/* Strictly does NOT imply clinical equivalence.                 */}
-      {/* ============================================================ */}
-      <section className="bg-white rounded-2xl border border-slate-200/90 p-6 sm:p-8 shadow-xs space-y-6">
-        <div>
-          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400">
-            <Layers className={`w-4 h-4 ${isLakshmi ? "text-teal-600" : "text-blue-600"}`} />
-            <span>Cross-Brand Catalog Reference</span>
-          </div>
-          <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-            Products with matching composition
-          </h2>
-          <p className="text-xs text-slate-500 pt-1">
-            Other branded formulations listed in {company.name}&apos;s catalog sharing identical active ingredients, strengths, and dosage form.
-          </p>
-        </div>
-
-        {/* Non-Equivalence Medical Disclaimer */}
-        <div className="p-4 rounded-xl bg-amber-50/70 border border-amber-200/80 text-xs text-amber-900 space-y-1">
-          <div className="flex items-center gap-2 font-bold text-amber-950">
-            <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0" />
-            <span>Important Medical &amp; Prescription Guidance</span>
-          </div>
-          <p className="text-[11px] leading-relaxed text-amber-800">
-            {matchingComposition?.disclaimer ||
-              "Do not describe matching compositions as automatically interchangeable medicines or recommend substitutions. Information is provided solely for commercial trade cross-reference."}
-          </p>
-        </div>
-
-        {/* Matching Products List or Empty message */}
-        {matchingComposition && matchingComposition.matches.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {matchingComposition.matches.map((match) => (
-              <div
-                key={match.id}
-                className="p-4 rounded-xl border border-slate-200 bg-white hover:border-slate-300 shadow-2xs transition-all space-y-3 flex flex-col justify-between"
-              >
-                <div className="space-y-2">
-                  <div className="flex items-start justify-between gap-2">
-                    <Link
-                      href={`/${companySlug}/products/${match.slug}`}
-                      className="font-bold text-sm text-slate-900 hover:text-teal-700 transition-colors"
-                    >
-                      {match.name}
-                    </Link>
-                    <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200 shrink-0">
-                      {match.dosageForm}
-                    </span>
-                  </div>
-
-                  <div className="text-xs">
-                    <span className="text-[10px] text-slate-400 uppercase font-bold block mb-0.5">
-                      Composition
-                    </span>
-                    <span className="font-semibold text-slate-700">
-                      {match.compositionSummary}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between text-xs text-slate-600 pt-1">
-                    <span className="text-slate-500">Manufacturer:</span>
-                    <span className="font-bold text-slate-800">{match.manufacturer.name}</span>
-                  </div>
-
-                  <div className="flex items-center justify-between text-xs text-slate-600">
-                    <span className="text-slate-500">Packaging:</span>
-                    <span className="font-semibold text-slate-800">{match.packaging}</span>
-                  </div>
-                </div>
-
-                <div className="pt-2 border-t border-slate-100">
-                  <Link
-                    href={`/${companySlug}/products/${match.slug}`}
-                    className="w-full text-center py-2 rounded-lg text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 flex items-center justify-center gap-1 transition-colors"
-                  >
-                    <span>View Separate Formulation</span>
-                    <ChevronRight className="w-3 h-3 text-slate-400" />
-                  </Link>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="p-8 text-center rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-500 space-y-1">
-            <p className="font-medium text-slate-700">
-              No other products with this exact composition in {company.name}&apos;s catalog.
-            </p>
-            <p className="text-[11px] text-slate-400">
-              This formulation is the unique brand currently listed for this composition and dosage form by this distributor.
-            </p>
-          </div>
-        )}
-      </section>
+      <div className="h-20 lg:hidden" aria-hidden="true" />
     </div>
   );
 }

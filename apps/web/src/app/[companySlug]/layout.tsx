@@ -1,78 +1,62 @@
-import React from "react";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { TopBar } from "@/components/layout/TopBar";
-import { Header } from "@/components/layout/Header";
-import { Footer } from "@/components/layout/Footer";
-import { FloatingTradeSpeedDial } from "@/components/common/FloatingTradeSpeedDial";
-import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
-import { fetchCompany } from "@/lib/api";
-
-import { ScrollAnimatedBackground } from "@/components/common/ScrollAnimatedBackground";
+import { COMPANY_SLUGS, isCompanySlug } from "@/lib/companies";
+import { getCompany } from "@/lib/server";
 import { InquiryProvider } from "@/components/inquiry/InquiryContext";
-import { CompanyInquiryContainer } from "@/components/inquiry/CompanyInquiryContainer";
+import { EnquiryDrawer } from "@/components/inquiry/EnquiryDrawer";
+import { CompanyHeader } from "@/components/site/CompanyHeader";
+import { MobileTabBar } from "@/components/site/MobileTabBar";
+import { SiteFooter } from "@/components/site/SiteFooter";
+import { CompanyIntro } from "@/components/site/CompanyIntro";
 
-interface CompanyLayoutProps {
-  children: React.ReactNode;
-  params: {
-    companySlug: string;
+export const revalidate = 300;
+
+export function generateStaticParams() {
+  return COMPANY_SLUGS.map((companySlug) => ({ companySlug }));
+}
+
+export async function generateMetadata({ params }: { params: { companySlug: string } }): Promise<Metadata> {
+  if (!isCompanySlug(params.companySlug)) return {};
+  const company = await getCompany(params.companySlug);
+  return {
+    title: { default: `${company.name} | L&K Pharma`, template: `%s | ${company.name}` },
+    description: company.tagline ?? company.description,
   };
 }
 
-export default async function CompanyLayout({ children, params }: CompanyLayoutProps) {
+export default async function CompanyLayout({
+  children,
+  params,
+}: {
+  children: React.ReactNode;
+  params: { companySlug: string };
+}) {
   const { companySlug } = params;
+  if (!isCompanySlug(companySlug)) notFound();
 
-  if (companySlug !== "lakshmi-pharma" && companySlug !== "kothittil-pharma") {
-    notFound();
-  }
-
-  let company;
-  try {
-    company = await fetchCompany(companySlug);
-  } catch (err) {
-    // If backend is unreachable during static pre-rendering, fallback safely
-    company = {
-      id: companySlug,
-      slug: companySlug,
-      name:
-        companySlug === "lakshmi-pharma"
-          ? "Lakshmi Pharma"
-          : "The Kothittil Pharmaceutical Distributor",
-      shortName: companySlug === "lakshmi-pharma" ? "Lakshmi" : "Kothittil",
-      accentColor: companySlug === "lakshmi-pharma" ? "teal" : "blue",
-      description: "Authorized Pharmaceutical Distributor",
-      serviceAreas: "South India Regional Healthcare Distribution",
-      address:
-        companySlug === "lakshmi-pharma"
-          ? "Market Road, Kochi, Kerala - 682035"
-          : "NH 66 Bypass, Thiruvananthapuram, Kerala - 695024",
-      phone: companySlug === "lakshmi-pharma" ? "+91 484 235 6789" : "+91 471 245 8890",
-      email: companySlug === "lakshmi-pharma" ? "orders@lakshmipharma.demo" : "supply@kothittilpharma.demo",
-      whatsapp: companySlug === "lakshmi-pharma" ? "+91 94471 23456" : "+91 98460 78901",
-      businessHours: "Mon - Sat: 8:30 AM - 7:30 PM",
-      drugLicenseNo: "KL-REG-2024-DL (DEMO)",
-      isActive: true,
-    } as any;
-  }
-
-  const isLakshmi = company.slug === "lakshmi-pharma";
+  const [company, ...others] = await Promise.all([
+    getCompany(companySlug),
+    ...COMPANY_SLUGS.filter((s) => s !== companySlug).map((s) => getCompany(s)),
+  ]);
 
   return (
     <InquiryProvider companySlug={companySlug}>
-      <div
-        className={`min-h-screen flex flex-col relative ${
-          isLakshmi ? "theme-lakshmi" : "theme-kothittil"
-        }`}
-      >
-        {/* 2026 Modern Scroll-Animated Pharmaceutical Background */}
-        <ScrollAnimatedBackground companySlug={companySlug} />
-
-        <TopBar company={company} />
-        <Header currentCompany={company} />
-        <main className="flex-1 pb-24 lg:pb-0 relative overflow-x-hidden pt-2 sm:pt-3">{children}</main>
-        <Footer currentCompany={company} />
-        <FloatingTradeSpeedDial company={company} />
-        <MobileBottomNav currentCompany={company} />
-        <CompanyInquiryContainer company={company} />
+      <div data-company={companySlug} className="flex min-h-screen flex-col">
+        <a
+          href="#main"
+          className="sr-only z-50 rounded-full bg-ink px-4 py-2 text-white focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
+        >
+          Skip to content
+        </a>
+        <CompanyHeader company={company} />
+        <main id="main" className="flex-1">
+          {children}
+        </main>
+        <SiteFooter companies={[company, ...others]} />
+        <div className="h-16 bg-ink pb-[env(safe-area-inset-bottom)] lg:hidden" aria-hidden="true" />
+        <MobileTabBar slug={companySlug} />
+        <EnquiryDrawer company={company} />
+        <CompanyIntro slug={companySlug} name={company.name} />
       </div>
     </InquiryProvider>
   );
