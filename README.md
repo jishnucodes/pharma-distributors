@@ -3,14 +3,14 @@
 A responsive, high-performance, and regulatory-compliant B2B pharmaceutical distribution website built for two independent distributors under the master **L & K Group** brand:
 
 1. **Lakshmi Pharma** (Teal / Emerald accent) — Ethical formulations, essential generics, and community healthcare supply serving 1,400+ pharmacies across South India.
-2. **The Kothittil Pharmaceutical Distributor** (Royal Blue accent) — Specialty therapeutics, oncology, diabetology, and cold-chain institutional critical care logistics.
+2. **The Kothottil Pharmaceutical Distributor** (Royal Blue accent) — Specialty therapeutics, oncology, diabetology, and cold-chain institutional critical care logistics.
 
 ---
 
 ## Key Highlights & Architecture
 
 ### 1. Two Companies, One Integrated Website
-- **Flipkart-Style Dual Switcher in Header Navbar**: Segmented pill toggle allowing users to switch seamlessly between **Lakshmi Pharma** and **The Kothittil Pharma** with company-specific active color badges.
+- **Flipkart-Style Dual Switcher in Header Navbar**: Segmented pill toggle allowing users to switch seamlessly between **Lakshmi Pharma** and **The Kothottil Pharma** with company-specific active color badges.
 - **Company-Scoped Routes**:
   - `/[companySlug]` — Company overview, logistics highlights, and authorized manufacturers banner
   - `/[companySlug]/products` — Advanced composition-based search catalog
@@ -18,7 +18,7 @@ A responsive, high-performance, and regulatory-compliant B2B pharmaceutical dist
   - `/[companySlug]/manufacturers` — Authorized principal manufacturers directory with logos and text badges
   - `/[companySlug]/about` — Company profile, service coverage, and Good Distribution Practice compliance
   - `/[companySlug]/contact` — Direct commercial trade desk, telephone, email, WhatsApp, and B2B inquiry form
-- **Strict Catalog Isolation**: Formulations published for one company never leak into the other. For example, *Calpol 650* is listed exclusively in Lakshmi Pharma's catalog, while *Glycomet 500 SR* is listed exclusively in Kothittil Pharma's catalog.
+- **Strict Catalog Isolation**: Formulations published for one company never leak into the other. For example, *Calpol 650* is listed exclusively in Lakshmi Pharma's catalog, while *Glycomet 500 SR* is listed exclusively in Kothottil Pharma's catalog.
 
 ### 2. Composition-Based Product Search (Primary Feature)
 - Search across:
@@ -42,7 +42,7 @@ A responsive, high-performance, and regulatory-compliant B2B pharmaceutical dist
 
 ### 5. Multi-Tier Administration & Role-Based Security
 - **Super Administrator** (`superadmin@lkpharma.demo`): Can manage both companies, edit shared product master records, add canonical ingredients & aliases, and manage manufacturer partnerships.
-- **Company Administrators** (`admin@lakshmipharma.demo` & `admin@kothittilpharma.demo`): Scoped strictly to their assigned company’s profile, catalog publish/featured toggles, and incoming trade inquiries.
+- **Company Administrators** (`admin@lakshmipharma.demo` & `admin@kothottilpharma.demo`): Scoped strictly to their assigned company’s profile, catalog publish/featured toggles, and incoming trade inquiries.
 
 ---
 
@@ -153,9 +153,9 @@ npx tsx test-acceptance.ts
 ```
 
 ### Verified Test Results:
-1. `[PASS]` Companies exist in database (Lakshmi Pharma & The Kothittil Pharma)
-2. `[PASS]` Catalog scoping: *Calpol 650* is listed in Lakshmi Pharma but NEVER leaks into Kothittil Pharma
-3. `[PASS]` Catalog isolation: *Glycomet 500 SR* is listed exclusively in Kothittil Pharma
+1. `[PASS]` Companies exist in database (Lakshmi Pharma & The Kothottil Pharma)
+2. `[PASS]` Catalog scoping: *Calpol 650* is listed in Lakshmi Pharma but NEVER leaks into Kothottil Pharma
+3. `[PASS]` Catalog isolation: *Glycomet 500 SR* is listed exclusively in Kothottil Pharma
 4. `[PASS]` Acceptance fixture: Searching `paracetamol` returns both *Dolo 650* and *Calpol 650*
 5. `[PASS]` Ingredient alias resolution: Searching `acetaminophen` returns *Dolo 650* and *Calpol 650*
 6. `[PASS]` Strength matching: Searching `paracetamol 650 mg` returns both matching products
@@ -177,6 +177,6 @@ npx tsx test-acceptance.ts
 |---|---|---|---|
 | **Super Administrator** | `superadmin@lkpharma.demo` | `SuperAdmin@2026` | Both companies, shared product master, ingredients & aliases, manufacturers |
 | **Lakshmi Pharma Admin** | `admin@lakshmipharma.demo` | `Lakshmi@2026` | Lakshmi Pharma profile, catalog listing toggles, incoming inquiries |
-| **The Kothittil Pharma Admin** | `admin@kothittilpharma.demo` | `Kothittil@2026` | Kothittil Pharma profile, catalog listing toggles, incoming inquiries |
+| **The Kothottil Pharma Admin** | `admin@kothottilpharma.demo` | `Kothottil@2026` | Kothottil Pharma profile, catalog listing toggles, incoming inquiries |
 
 Demo login quick-autofill buttons are available directly on the login page at [http://localhost:3000/admin/login](http://localhost:3000/admin/login).

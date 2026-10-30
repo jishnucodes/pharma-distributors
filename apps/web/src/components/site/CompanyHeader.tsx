@@ -62,20 +62,20 @@ export function CompanyHeader({ company }: { company: Company }) {
             <Link
               href="/"
               className="group inline-flex items-center gap-1.5 font-medium text-ink-soft hover:text-ink transition-colors"
-              title="Return to L&K Pharma Network home"
+              title="Return to L&K Pharma"
             >
               <Building2 className="h-3.5 w-3.5 text-accent transition-transform group-hover:-translate-x-0.5" />
-              <span className="font-semibold text-ink">L&amp;K Pharma Network</span>
-              <span className="text-ink-mute">/</span>
+              <span className="font-semibold text-ink">L&amp;K Pharma</span>
+              {/* <span className="text-ink-mute">/</span>
               <span className="inline-flex items-center gap-1 text-accent font-semibold group-hover:underline">
                 <ArrowLeft className="h-3 w-3" />
                 <span>Network Hub</span>
-              </span>
+              </span> */}
             </Link>
-            <span className="hidden md:inline text-line-dark">•</span>
+            {/* <span className="hidden md:inline text-line-dark">•</span>
             <span className="hidden md:inline text-ink-mute truncate">
               South India Wholesale Healthcare Distribution
-            </span>
+            </span> */}
           </div>
 
           {/* Right: Quick Distributor Switcher & Direct Support */}
@@ -96,16 +96,16 @@ export function CompanyHeader({ company }: { company: Company }) {
                   Lakshmi
                 </Link>
                 <Link
-                  href="/kothittil-pharma"
+                  href="/kothottil-pharma"
                   className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 font-semibold transition-all ${
                     !isLakshmi
                       ? "bg-[#2450C8] text-white shadow-xs font-bold"
                       : "text-ink-soft hover:text-ink hover:bg-black/5"
                   }`}
-                  title="View The Kothittil Portal"
+                  title="View The Kothottil Portal"
                 >
                   <span className={`h-1.5 w-1.5 rounded-full ${!isLakshmi ? "bg-white" : "bg-[#2450C8]"}`} />
-                  Kothittil
+                  Kothottil
                 </Link>
               </div>
             </div>
@@ -273,7 +273,7 @@ export function CompanyHeader({ company }: { company: Company }) {
                   Lakshmi Pharma
                 </Link>
                 <Link
-                  href="/kothittil-pharma"
+                  href="/kothottil-pharma"
                   onClick={() => setMobileMenuOpen(false)}
                   className={`flex items-center justify-center gap-1.5 rounded-xl py-2 px-2 text-xs font-semibold transition-all ${
                     !isLakshmi
@@ -282,7 +282,7 @@ export function CompanyHeader({ company }: { company: Company }) {
                   }`}
                 >
                   <span className={`h-2 w-2 rounded-full ${!isLakshmi ? "bg-white" : "bg-[#2450C8]"}`} />
-                  The Kothittil
+                  The Kothottil
                 </Link>
               </div>
             </div>

@@ -11,14 +11,14 @@ const display = Fraunces({
 });
 
 export const metadata: Metadata = {
-  title: "L & K Pharma Network | Lakshmi Pharma & The Kothittil Pharmaceutical Distributor",
+  title: "L & K Pharma Network | Lakshmi Pharma & The Kothottil Pharmaceutical Distributor",
   description:
-    "Browse the wholesale catalogues of Lakshmi Pharma and The Kothittil Pharmaceutical Distributor. Search by brand or composition and send one enquiry for many products at once.",
+    "Browse the wholesale catalogues of Lakshmi Pharma and The Kothottil Pharmaceutical Distributor. Search by brand or composition and send one enquiry for many products at once.",
   keywords: [
     "pharmaceutical distributor",
     "wholesale pharma Kerala",
     "Lakshmi Pharma",
-    "The Kothittil Pharmaceutical Distributor",
+    "The Kothottil Pharmaceutical Distributor",
     "medicine enquiry",
     "B2B pharma catalogue",
   ],

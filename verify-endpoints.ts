@@ -11,7 +11,7 @@ async function verifyAll() {
     { url: "http://localhost:3000/lakshmi-pharma/manufacturers", name: "Authorized Manufacturers Directory", expected: "Authorized Pharmaceutical Manufacturers" },
     { url: "http://localhost:3000/lakshmi-pharma/about", name: "Lakshmi Pharma About & Compliance Page", expected: "About Lakshmi Pharma" },
     { url: "http://localhost:3000/lakshmi-pharma/contact", name: "Lakshmi Pharma Trade Desk & Contact Page", expected: "Submit Wholesale Trade Inquiry" },
-    { url: "http://localhost:3000/kothittil-pharma/products", name: "The Kothittil Pharma Products Catalog", expected: "The Kothittil Pharma Catalog" },
+    { url: "http://localhost:3000/kothottil-pharma/products", name: "The Kothottil Pharma Products Catalog", expected: "The Kothottil Pharma Catalog" },
     { url: "http://localhost:3000/admin/login", name: "Administrator Authentication Page", expected: "Distributor Management Portal" },
   ];
 

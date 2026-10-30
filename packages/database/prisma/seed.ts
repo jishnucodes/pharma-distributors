@@ -48,19 +48,37 @@ async function main() {
     },
   });
 
-  const kothittil = await prisma.company.upsert({
+  // Migrate legacy slug and admin email if existing
+  await prisma.company.updateMany({
     where: { slug: "kothittil-pharma" },
+    data: {
+      slug: "kothottil-pharma",
+      name: "The Kothottil Pharmaceutical Distributor",
+      shortName: "Kothottil",
+      email: "supply@kothottilpharma.demo",
+    },
+  });
+  await prisma.user.updateMany({
+    where: { email: "admin@kothittilpharma.demo" },
+    data: {
+      email: "admin@kothottilpharma.demo",
+      name: "Kothottil Institutional Lead",
+    },
+  });
+
+  const kothottil = await prisma.company.upsert({
+    where: { slug: "kothottil-pharma" },
     update: {
-      name: "The Kothittil Pharmaceutical Distributor",
-      shortName: "Kothittil",
+      name: "The Kothottil Pharmaceutical Distributor",
+      shortName: "Kothottil",
       accentColor: "blue",
       tagline: "Specialty Therapeutics, Critical Care & Institutional Supply",
       description:
-        "Established in 2005, The Kothittil Pharmaceutical Distributor specializes in cold-chain logistics, cardiology, diabetology, and oncology institutional supply chains. We partner directly with leading research manufacturers to provide verified batch compliance and zero-delay distribution across premier hospitals.",
+        "Established in 2005, The Kothottil Pharmaceutical Distributor specializes in cold-chain logistics, cardiology, diabetology, and oncology institutional supply chains. We partner directly with leading research manufacturers to provide verified batch compliance and zero-delay distribution across premier hospitals.",
       serviceAreas: "Kerala (Thiruvananthapuram, Kollam, Alappuzha, Kottayam, Pathanamthitta), Karnataka (Bengaluru Urban)",
       address: "Plot 14B, Healthcare Logistics Hub, NH 66 Bypass, Kazhakkoottam, Thiruvananthapuram, Kerala - 695024",
       phone: "+91 471 245 8890",
-      email: "supply@kothittilpharma.demo",
+      email: "supply@kothottilpharma.demo",
       whatsapp: "+91 98460 78901",
       mapUrl: "https://maps.google.com/?q=Thiruvananthapuram+Kerala",
       businessHours: "Monday to Saturday: 8:00 AM - 8:00 PM (24x7 Critical Care Emergency Support)",
@@ -69,17 +87,17 @@ async function main() {
       isActive: true,
     },
     create: {
-      name: "The Kothittil Pharmaceutical Distributor",
-      slug: "kothittil-pharma",
-      shortName: "Kothittil",
+      name: "The Kothottil Pharmaceutical Distributor",
+      slug: "kothottil-pharma",
+      shortName: "Kothottil",
       accentColor: "blue",
       tagline: "Specialty Therapeutics, Critical Care & Institutional Supply",
       description:
-        "Established in 2005, The Kothittil Pharmaceutical Distributor specializes in cold-chain logistics, cardiology, diabetology, and oncology institutional supply chains. We partner directly with leading research manufacturers to provide verified batch compliance and zero-delay distribution across premier hospitals.",
+        "Established in 2005, The Kothottil Pharmaceutical Distributor specializes in cold-chain logistics, cardiology, diabetology, and oncology institutional supply chains. We partner directly with leading research manufacturers to provide verified batch compliance and zero-delay distribution across premier hospitals.",
       serviceAreas: "Kerala (Thiruvananthapuram, Kollam, Alappuzha, Kottayam, Pathanamthitta), Karnataka (Bengaluru Urban)",
       address: "Plot 14B, Healthcare Logistics Hub, NH 66 Bypass, Kazhakkoottam, Thiruvananthapuram, Kerala - 695024",
       phone: "+91 471 245 8890",
-      email: "supply@kothittilpharma.demo",
+      email: "supply@kothottilpharma.demo",
       whatsapp: "+91 98460 78901",
       mapUrl: "https://maps.google.com/?q=Thiruvananthapuram+Kerala",
       businessHours: "Monday to Saturday: 8:00 AM - 8:00 PM (24x7 Critical Care Emergency Support)",
@@ -89,7 +107,7 @@ async function main() {
     },
   });
 
-  console.log(`✓ Seeded companies: ${lakshmi.name} & ${kothittil.name}`);
+  console.log(`✓ Seeded companies: ${lakshmi.name} & ${kothottil.name}`);
 
   // 2. Seed Manufacturers (Only authorized logos / clean text fallbacks)
   const manufacturersData = [
@@ -133,19 +151,19 @@ async function main() {
     });
   }
 
-  // Kothittil distributes: Micro Labs, Sun Pharma, Torrent, Alkem, Cipla
-  const kothittilMfgSlugs = ["micro-labs", "sun-pharma", "torrent-pharma", "alkem-labs", "cipla"];
-  for (const slug of kothittilMfgSlugs) {
+  // Kothottil distributes: Micro Labs, Sun Pharma, Torrent, Alkem, Cipla
+  const kothottilMfgSlugs = ["micro-labs", "sun-pharma", "torrent-pharma", "alkem-labs", "cipla"];
+  for (const slug of kothottilMfgSlugs) {
     await prisma.companyManufacturer.upsert({
       where: {
         companyId_manufacturerId: {
-          companyId: kothittil.id,
+          companyId: kothottil.id,
           manufacturerId: manufacturers[slug].id,
         },
       },
       update: { isAuthorized: true },
       create: {
-        companyId: kothittil.id,
+        companyId: kothottil.id,
         manufacturerId: manufacturers[slug].id,
         isAuthorized: true,
         partnershipDetails: "Direct institutional & specialty supply partner",
@@ -283,7 +301,7 @@ async function main() {
       ],
       companies: [
         { companyId: lakshmi.id, isFeatured: true, itemCode: "LK-MIC-DOLO650" },
-        { companyId: kothittil.id, isFeatured: false, itemCode: "KT-MIC-DOLO650" },
+        { companyId: kothottil.id, isFeatured: false, itemCode: "KT-MIC-DOLO650" },
       ],
     },
     {
@@ -354,7 +372,7 @@ async function main() {
         { ingredientSlug: "clavulanic-acid", quantity: 125, unit: "mg", perBasis: "per tablet", isPrimary: false },
       ],
       companies: [
-        { companyId: kothittil.id, isFeatured: true, itemCode: "KT-MIC-MOX625" },
+        { companyId: kothottil.id, isFeatured: true, itemCode: "KT-MIC-MOX625" },
       ],
     },
     {
@@ -372,7 +390,7 @@ async function main() {
       ],
       companies: [
         { companyId: lakshmi.id, isFeatured: false, itemCode: "LK-CIP-CIP500" },
-        { companyId: kothittil.id, isFeatured: false, itemCode: "KT-CIP-CIP500" },
+        { companyId: kothottil.id, isFeatured: false, itemCode: "KT-CIP-CIP500" },
       ],
     },
     {
@@ -390,7 +408,7 @@ async function main() {
       ],
       companies: [
         { companyId: lakshmi.id, isFeatured: false, itemCode: "LK-SUN-PAN40" },
-        { companyId: kothittil.id, isFeatured: true, itemCode: "KT-SUN-PAN40" },
+        { companyId: kothottil.id, isFeatured: true, itemCode: "KT-SUN-PAN40" },
       ],
     },
     {
@@ -442,9 +460,9 @@ async function main() {
       ingredients: [
         { ingredientSlug: "metformin", quantity: 500, unit: "mg", perBasis: "per tablet", isPrimary: true },
       ],
-      // Exclusively in Kothittil catalog!
+      // Exclusively in Kothottil catalog!
       companies: [
-        { companyId: kothittil.id, isFeatured: true, itemCode: "KT-TOR-GLY500" },
+        { companyId: kothottil.id, isFeatured: true, itemCode: "KT-TOR-GLY500" },
       ],
     },
     {
@@ -461,7 +479,7 @@ async function main() {
         { ingredientSlug: "azithromycin", quantity: 500, unit: "mg", perBasis: "per tablet", isPrimary: true },
       ],
       companies: [
-        { companyId: kothittil.id, isFeatured: false, itemCode: "KT-CIP-AZEE500" },
+        { companyId: kothottil.id, isFeatured: false, itemCode: "KT-CIP-AZEE500" },
       ],
     },
   ];
@@ -562,7 +580,7 @@ async function main() {
   const salt = await bcrypt.genSalt(10);
   const superAdminHash = await bcrypt.hash("SuperAdmin@2026", salt);
   const lakshmiAdminHash = await bcrypt.hash("Lakshmi@2026", salt);
-  const kothittilAdminHash = await bcrypt.hash("Kothittil@2026", salt);
+  const kothottilAdminHash = await bcrypt.hash("Kothottil@2026", salt);
 
   const superAdmin = await prisma.user.upsert({
     where: { email: "superadmin@lkpharma.demo" },
@@ -600,13 +618,13 @@ async function main() {
     },
   });
 
-  const kothittilAdmin = await prisma.user.upsert({
-    where: { email: "admin@kothittilpharma.demo" },
-    update: { passwordHash: kothittilAdminHash, role: "COMPANY_ADMIN" },
+  const kothottilAdmin = await prisma.user.upsert({
+    where: { email: "admin@kothottilpharma.demo" },
+    update: { passwordHash: kothottilAdminHash, role: "COMPANY_ADMIN" },
     create: {
-      email: "admin@kothittilpharma.demo",
-      passwordHash: kothittilAdminHash,
-      name: "Kothittil Institutional Lead",
+      email: "admin@kothottilpharma.demo",
+      passwordHash: kothottilAdminHash,
+      name: "Kothottil Institutional Lead",
       role: "COMPANY_ADMIN",
     },
   });
@@ -614,18 +632,18 @@ async function main() {
   await prisma.companyMembership.upsert({
     where: {
       userId_companyId: {
-        userId: kothittilAdmin.id,
-        companyId: kothittil.id,
+        userId: kothottilAdmin.id,
+        companyId: kothottil.id,
       },
     },
     update: {},
     create: {
-      userId: kothittilAdmin.id,
-      companyId: kothittil.id,
+      userId: kothottilAdmin.id,
+      companyId: kothottil.id,
     },
   });
 
-  console.log("✓ Seeded admin accounts: SuperAdmin, LakshmiAdmin, KothittilAdmin");
+  console.log("✓ Seeded admin accounts: SuperAdmin, LakshmiAdmin, KothottilAdmin");
 
   // 8. Seed Sample Inquiries
   const doloProduct = await prisma.product.findUnique({ where: { slug: "dolo-650" } });
@@ -656,7 +674,7 @@ async function main() {
         adminNotes: "Stock verified at Palarivattom warehouse. Response email sent.",
       },
       {
-        companyId: kothittil.id,
+        companyId: kothottil.id,
         productId: glycometProduct?.id,
         name: "Mr. Suresh Varma",
         businessName: "Trivandrum Specialty Hospital Supplies",

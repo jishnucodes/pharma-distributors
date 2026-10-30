@@ -29,17 +29,17 @@ async function loadManufacturers(): Promise<Manufacturer[]> {
 
 export default async function HomePage() {
   const [companies, manufacturers] = await Promise.all([loadCompanies(), loadManufacturers()]);
-  const [lakshmi, kothittil] = companies;
+  const [lakshmi, kothottil] = companies;
 
   return (
     <>
       <HomeHeader />
       <CompanyIntroTrigger />
       <main>
-        <CapsuleStory lakshmi={lakshmi} kothittil={kothittil} />
+        <CapsuleStory lakshmi={lakshmi} kothottil={kothottil} />
 
         {/* Choose a distributor */}
-        <section id="choose" className="scroll-mt-16 py-16 sm:py-24">
+        {/* <section id="choose" className="scroll-mt-16 py-16 sm:py-24">
           <div className="container-x">
             <p className="eyebrow !text-ink-soft">Step inside</p>
             <h2 className="mt-2 max-w-2xl font-display text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">
@@ -54,7 +54,7 @@ export default async function HomePage() {
               ))}
             </div>
           </div>
-        </section>
+        </section> */}
 
         {/* How enquiry works */}
         <section className="border-y border-line bg-white py-16 sm:py-24">

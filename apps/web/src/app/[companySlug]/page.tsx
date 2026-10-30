@@ -97,7 +97,7 @@ export default async function CompanyOverviewPage({ params }: { params: { compan
       </section>
 
       {/* Browse by form */}
-      {meta && meta.dosageForms.length > 0 && (
+      {/* {meta && meta.dosageForms.length > 0 && (
         <section className="container-x pt-14 sm:pt-20">
           <h2 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">Browse by type</h2>
           <ul className="no-scrollbar -mx-4 mt-6 flex snap-x gap-3 overflow-x-auto px-4 pb-2 sm:mx-0 sm:flex-wrap sm:px-0">
@@ -128,7 +128,7 @@ export default async function CompanyOverviewPage({ params }: { params: { compan
             ))}
           </ul>
         </section>
-      )}
+      )} */}
 
       {/* Featured */}
       {featured.length > 0 && (

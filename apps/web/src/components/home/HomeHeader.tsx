@@ -29,14 +29,14 @@ export function HomeHeader() {
             <span className="h-2.5 w-2.5 rounded-full bg-lakshmi" /> Lakshmi
           </Link>
           <Link
-            href="/kothittil-pharma"
+            href="/kothottil-pharma"
             className="hidden min-h-[44px] items-center gap-2 rounded-full px-4 text-base font-semibold text-ink hover:bg-white sm:inline-flex"
           >
-            <span className="h-2.5 w-2.5 rounded-full bg-kothittil" /> Kothittil
+            <span className="h-2.5 w-2.5 rounded-full bg-kothottil" /> Kothottil
           </Link>
-          <a href="#choose" className="btn-ink min-h-[44px] px-5 text-[0.95rem]">
+          {/* <a href="#choose" className="btn-ink min-h-[44px] px-5 text-[0.95rem]">
             Catalogues
-          </a>
+          </a> */}
         </nav>
       </div>
     </header>

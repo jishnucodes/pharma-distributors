@@ -176,7 +176,7 @@ export function Brand3DMotionIntro({ isReady, onSkip }: Props) {
           <div className="relative flex items-center -rotate-[24deg] shadow-[0_12px_30px_rgba(19,34,31,0.15)]">
             <div className="h-9 w-14 sm:h-12 sm:w-18 rounded-l-full bg-gradient-to-br from-lakshmi to-lakshmi-deep" />
             <div className="h-7 w-1.5 sm:h-10 sm:w-2 bg-white shadow-[0_0_12px_#ffffff]" />
-            <div className="h-9 w-14 sm:h-12 sm:w-18 rounded-r-full bg-gradient-to-br from-kothittil to-kothittil-deep" />
+            <div className="h-9 w-14 sm:h-12 sm:w-18 rounded-r-full bg-gradient-to-br from-kothottil to-kothottil-deep" />
           </div>
         </div>
 
@@ -226,9 +226,9 @@ export function Brand3DMotionIntro({ isReady, onSkip }: Props) {
 
           <span className="text-xs font-semibold text-ink-mute">✕</span>
 
-          <div className="flex items-center gap-1.5 rounded-full border border-kothittil/30 bg-white/90 px-3 py-1 shadow-sm text-xs font-bold uppercase tracking-wider text-ink">
-            <span className="h-2 w-2 rounded-full bg-kothittil" />
-            <span>Kothittil</span>
+          <div className="flex items-center gap-1.5 rounded-full border border-kothottil/30 bg-white/90 px-3 py-1 shadow-sm text-xs font-bold uppercase tracking-wider text-ink">
+            <span className="h-2 w-2 rounded-full bg-kothottil" />
+            <span>Kothottil</span>
           </div>
         </div>
 

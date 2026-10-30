@@ -804,7 +804,7 @@ export default function AdminDashboardPage() {
                   Company Catalog Listings &amp; Scoping
                 </h2>
                 <p className="text-slate-500">
-                  Control which shared formulations appear in Lakshmi Pharma vs. The Kothittil Pharma catalogs.
+                  Control which shared formulations appear in Lakshmi Pharma vs. The Kothottil Pharma catalogs.
                 </p>
               </div>
 
@@ -816,7 +816,7 @@ export default function AdminDashboardPage() {
                       <th className="py-3 px-4">Manufacturer</th>
                       <th className="py-3 px-4">Structured Composition</th>
                       <th className="py-3 px-4 text-center">Lakshmi Pharma</th>
-                      <th className="py-3 px-4 text-center">The Kothittil Pharma</th>
+                      <th className="py-3 px-4 text-center">The Kothottil Pharma</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -824,15 +824,15 @@ export default function AdminDashboardPage() {
                       const lakshmiListing = prod.companyProducts.find(
                         (cp: any) => cp.company.slug === "lakshmi-pharma"
                       );
-                      const kothittilListing = prod.companyProducts.find(
-                        (cp: any) => cp.company.slug === "kothittil-pharma"
+                      const kothottilListing = prod.companyProducts.find(
+                        (cp: any) => cp.company.slug === "kothottil-pharma"
                       );
 
                       const lakshmiCompany = overviewData?.companies?.find(
                         (c: any) => c.slug === "lakshmi-pharma"
                       );
-                      const kothittilCompany = overviewData?.companies?.find(
-                        (c: any) => c.slug === "kothittil-pharma"
+                      const kothottilCompany = overviewData?.companies?.find(
+                        (c: any) => c.slug === "kothottil-pharma"
                       );
 
                       return (
@@ -881,26 +881,26 @@ export default function AdminDashboardPage() {
                             )}
                           </td>
 
-                          {/* Kothittil Column */}
+                          {/* Kothottil Column */}
                           <td className="py-3 px-4 align-top text-center">
-                            {kothittilCompany && (
+                            {kothottilCompany && (
                               <button
                                 type="button"
                                 onClick={() =>
                                   handleToggleListing(
-                                    kothittilCompany.id,
+                                    kothottilCompany.id,
                                     prod.id,
                                     "isPublished",
-                                    Boolean(kothittilListing?.isPublished)
+                                    Boolean(kothottilListing?.isPublished)
                                   )
                                 }
                                 className={`px-3 py-1 rounded-full text-[10px] font-bold border transition-colors ${
-                                  kothittilListing?.isPublished
+                                  kothottilListing?.isPublished
                                     ? "bg-blue-50 text-blue-800 border-blue-300"
                                     : "bg-slate-100 text-slate-400 border-slate-200 hover:bg-slate-200"
                                 }`}
                               >
-                                {kothittilListing?.isPublished ? "Listed ✓" : "Unlisted ✗"}
+                                {kothottilListing?.isPublished ? "Listed ✓" : "Unlisted ✗"}
                               </button>
                             )}
                           </td>

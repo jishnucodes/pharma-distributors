@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-/** Two-tone capsule mark: red half for Lakshmi, blue half for Kothittil. */
+/** Two-tone capsule mark: red half for Lakshmi, blue half for Kothottil. */
 export function CapsuleMark({ className = "h-8 w-8" }: { className?: string }) {
   return (
     <svg viewBox="0 0 40 40" className={className} aria-hidden="true">

@@ -136,12 +136,12 @@ export default function AdminLoginPage() {
 
               <button
                 type="button"
-                onClick={() => handleQuickLogin("admin@kothittilpharma.demo", "Kothittil@2026")}
+                onClick={() => handleQuickLogin("admin@kothottilpharma.demo", "Kothottil@2026")}
                 className="w-full text-left p-2.5 rounded-lg border border-blue-200 bg-blue-50/50 hover:bg-blue-100/50 transition-colors text-xs flex items-center justify-between"
               >
                 <div>
-                  <div className="font-bold text-blue-950">3. The Kothittil Pharma Admin</div>
-                  <div className="text-[10px] text-slate-500">admin@kothittilpharma.demo (Kothittil catalog &amp; inquiries)</div>
+                  <div className="font-bold text-blue-950">3. The Kothottil Pharma Admin</div>
+                  <div className="text-[10px] text-slate-500">admin@kothottilpharma.demo (Kothottil catalog &amp; inquiries)</div>
                 </div>
                 <span className="text-[10px] font-mono text-blue-700 font-bold">Use &rarr;</span>
               </button>

@@ -2,7 +2,7 @@
   "name": "pharma-distributors-monorepo",
   "version": "1.0.0",
   "private": true,
-  "description": "L & K Pharmaceutical Distribution Platform for Lakshmi Pharma & The Kothittil Pharmaceutical Distributor",
+  "description": "L & K Pharmaceutical Distribution Platform for Lakshmi Pharma & The Kothottil Pharmaceutical Distributor",
   "workspaces": [
     "packages/*",
     "apps/*"

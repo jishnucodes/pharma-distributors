@@ -12,7 +12,7 @@ model Company {
   name            String
   slug            String                @unique
   shortName       String
-  accentColor     String                @default("teal") // "teal" (Lakshmi) or "blue" (Kothittil)
+  accentColor     String                @default("teal") // "teal" (Lakshmi) or "blue" (Kothottil)
   tagline         String?
   description     String
   serviceAreas    String                // Comma separated or descriptive coverage
