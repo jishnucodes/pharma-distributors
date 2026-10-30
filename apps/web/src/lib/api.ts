@@ -11,14 +11,14 @@ import {
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
 export async function fetchCompanies(): Promise<Company[]> {
-  const res = await fetch(`${API_BASE}/companies`, { cache: "no-store" });
+  const res = await fetch(`${API_BASE}/companies`, { next: { revalidate: 300 } });
   if (!res.ok) throw new Error("Failed to fetch companies");
   const data = await res.json();
   return data.data;
 }
 
 export async function fetchCompany(slug: string): Promise<Company> {
-  const res = await fetch(`${API_BASE}/companies/${slug}`, { credentials: "omit" });
+  const res = await fetch(`${API_BASE}/companies/${slug}`, { next: { revalidate: 300 }, credentials: "omit" });
   if (!res.ok) throw new Error(`Company '${slug}' not found`);
   const data = await res.json();
   return data.data;
@@ -47,9 +47,11 @@ export async function fetchCatalog(
   if (params.limit) query.set("limit", params.limit.toString());
   if (params.sort) query.set("sort", params.sort);
 
-  const res = await fetch(`${API_BASE}/companies/${slug}/products?${query.toString()}`, {
-    cache: "no-store",
-  });
+  // Unfiltered requests can use ISR cache (60s) for ultra-fast instant loads, dynamic filters use no-store
+  const isFiltered = !!(params.q || params.manufacturer || params.dosageForm || params.category || params.strength || (params.page && params.page > 1) || params.sort);
+  const fetchOpts = isFiltered ? { cache: "no-store" as const } : { next: { revalidate: 60 } };
+
+  const res = await fetch(`${API_BASE}/companies/${slug}/products?${query.toString()}`, fetchOpts);
   if (!res.ok) throw new Error("Failed to fetch product catalog");
   return res.json();
 }
@@ -59,7 +61,7 @@ export async function fetchProduct(
   productSlug: string
 ): Promise<{ company: Company; data: Product }> {
   const res = await fetch(`${API_BASE}/companies/${companySlug}/products/${productSlug}`, {
-    cache: "no-store",
+    next: { revalidate: 300 },
   });
   if (!res.ok) throw new Error("Product not found in this catalog");
   return res.json();
@@ -70,7 +72,7 @@ export async function fetchManufacturers(companySlug: string): Promise<{
   data: Manufacturer[];
 }> {
   const res = await fetch(`${API_BASE}/companies/${companySlug}/manufacturers`, {
-    cache: "no-store",
+    next: { revalidate: 300 },
   });
   if (!res.ok) throw new Error("Failed to fetch manufacturers");
   return res.json();
@@ -84,7 +86,7 @@ export async function fetchManufacturerDetail(
   data: Manufacturer & { products: Array<{ id: string; slug: string; name: string; dosageForm: string; packaging: string; composition: string }> };
 }> {
   const res = await fetch(`${API_BASE}/companies/${companySlug}/manufacturers/${mfgSlug}`, {
-    cache: "no-store",
+    next: { revalidate: 300 },
   });
   if (!res.ok) throw new Error("Failed to fetch manufacturer details");
   return res.json();

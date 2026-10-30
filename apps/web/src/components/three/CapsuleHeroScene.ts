@@ -7,31 +7,22 @@ import {
   FrameClock,
 } from "./models";
 
-/**
- * Scroll story, as stages:
- *   0 closed capsule  →  1 opens, granules spill  →  2 Lakshmi half in focus
- *   →  3 Kothittil half in focus  →  4 halves rejoin ("one network")
- * Scroll progress (0–1) maps to a continuous stage value with short holds on
- * each stage so the text beside it has time to be read.
- */
-const STAGE_KEYS: Array<[number, number]> = [
-  [0.0, 0], [0.08, 0], [0.2, 1], [0.3, 1], [0.42, 2], [0.54, 2],
-  [0.66, 3], [0.78, 3], [0.9, 4], [1.0, 4],
-];
-
-export function stageFromProgress(p: number) {
-  for (let i = 1; i < STAGE_KEYS.length; i++) {
-    const [p1, s1] = STAGE_KEYS[i];
-    const [p0, s0] = STAGE_KEYS[i - 1];
-    if (p <= p1) {
-      const t = (p - p0) / Math.max(p1 - p0, 1e-6);
-      return s0 + (s1 - s0) * t;
-    }
-  }
-  return 4;
-}
-
 const STAGE_COUNT = 5;
+
+/**
+ * Continuous, silky-smooth progress-to-stage interpolation:
+ * Eliminates dead zones and stop-and-go jerks, tracking scroll 1:1 with natural momentum.
+ */
+export function stageFromProgress(p: number): number {
+  const clamped = THREE.MathUtils.clamp(p, 0, 1);
+  const raw = clamped * (STAGE_COUNT - 1);
+  const base = Math.floor(raw);
+  const frac = raw - base;
+  if (base >= STAGE_COUNT - 1) return STAGE_COUNT - 1;
+  // Hermite smoothstep for natural fluid transitions without abrupt halts
+  const smoothFrac = frac * frac * (3 - 2 * frac);
+  return base + smoothFrac;
+}
 
 interface Pose {
   pos: [number, number, number];
@@ -88,6 +79,7 @@ export interface CapsuleHeroOptions {
   capLabel: string;
   bodyLabel: string;
   reducedMotion: boolean;
+  onProgress?: (progress: number, status: string) => void;
 }
 
 export class CapsuleHeroScene {
@@ -111,14 +103,16 @@ export class CapsuleHeroScene {
   private running = false;
 
   constructor(private canvas: HTMLCanvasElement, private opts: CapsuleHeroOptions) {
-    this.renderer = createRenderer(canvas, 1.75);
+    opts.onProgress?.(0.35, "Initialising 3D Renderer...");
+    this.renderer = createRenderer(canvas, 1.6);
     applyStudioLighting(this.renderer, this.scene);
 
+    opts.onProgress?.(0.65, "Constructing Dual-Capsule Geometry...");
     this.cap = buildCapsuleHalf({ color: opts.capColor, label: opts.capLabel, isCap: true });
     this.body = buildCapsuleHalf({ color: opts.bodyColor, label: opts.bodyLabel, isCap: false });
     this.scene.add(this.cap, this.body);
 
-    const count = window.innerWidth < 768 ? 140 : 260;
+    const count = window.innerWidth < 768 ? 90 : 180;
     this.granules = new THREE.InstancedMesh(
       new THREE.IcosahedronGeometry(0.055, 1),
       new THREE.MeshStandardMaterial({ color: "#FFFDF6", roughness: 0.55 }),
@@ -140,6 +134,13 @@ export class CapsuleHeroScene {
 
     this.states = stages(false);
     this.resize();
+
+    // High-performance GPU shader pre-compilation
+    opts.onProgress?.(0.85, "Compiling WebGL Shaders...");
+    this.renderer.compile(this.scene, this.camera);
+    this.render(0);
+
+    opts.onProgress?.(1.0, "Ready");
     window.addEventListener("pointermove", this.onPointer, { passive: true });
   }
 
@@ -149,7 +150,7 @@ export class CapsuleHeroScene {
   };
 
   setProgress(p: number) {
-    this.target = stageFromProgress(THREE.MathUtils.clamp(p, 0, 1));
+    this.target = stageFromProgress(p);
     if (this.opts.reducedMotion) this.stage = this.target;
     if (!this.running) this.render(0);
   }
@@ -186,9 +187,10 @@ export class CapsuleHeroScene {
 
   private render(dt: number) {
     const rm = this.opts.reducedMotion;
-    // Critically-damped follow so fast flicks of the scroll wheel still read smoothly
-    this.stage = rm ? this.target : lerp(this.stage, this.target, 1 - Math.exp(-dt * 5));
-    if (!rm) this.spin += dt * 0.35;
+    // Responsive, fluid follow factor (eliminates trailing rubber-band lag)
+    const follow = rm ? 1 : 1 - Math.exp(-dt * 15);
+    this.stage = lerp(this.stage, this.target, follow);
+    if (!rm) this.spin += dt * 0.25;
 
     const i0 = Math.floor(this.stage);
     const i1 = Math.min(i0 + 1, STAGE_COUNT - 1);
@@ -198,18 +200,18 @@ export class CapsuleHeroScene {
 
     blendPose(a.cap, b.cap, t, this.cap, this.spin);
     blendPose(a.body, b.body, t, this.body, -this.spin);
-    const bob = rm ? 0 : Math.sin(this.clock.elapsedTime * 0.9) * 0.06;
+    const bob = rm ? 0 : Math.sin(this.clock.elapsedTime * 0.9) * 0.05;
     this.cap.position.y += bob;
     this.body.position.y += bob;
 
     const spread = lerp(a.spread, b.spread, t);
-    const cx = lerp(a.cloud[0], b.cloud[0], t);
-    const cy = lerp(a.cloud[1], b.cloud[1], t);
-    const cz = lerp(a.cloud[2], b.cloud[2], t);
-    const time = this.clock.elapsedTime;
     const visible = THREE.MathUtils.smoothstep(spread, 0.02, 0.35);
-    this.granules.visible = visible > 0.001;
+    this.granules.visible = visible > 0.005;
     if (this.granules.visible) {
+      const cx = lerp(a.cloud[0], b.cloud[0], t);
+      const cy = lerp(a.cloud[1], b.cloud[1], t);
+      const cz = lerp(a.cloud[2], b.cloud[2], t);
+      const time = this.clock.elapsedTime;
       for (let i = 0; i < this.granuleData.length; i++) {
         const g = this.granuleData[i];
         const drift = rm ? 0 : Math.sin(time * 0.6 + g.phase) * 0.12;
@@ -224,7 +226,7 @@ export class CapsuleHeroScene {
     }
 
     // Gentle parallax on desktop pointers only
-    this.pointerSmoothed.lerp(this.pointer, 1 - Math.exp(-dt * 3));
+    this.pointerSmoothed.lerp(this.pointer, 1 - Math.exp(-dt * 6));
     this.camera.position.x = this.pointerSmoothed.x * 0.35;
     this.camera.position.y = -this.pointerSmoothed.y * 0.25;
     this.camera.lookAt(0, 0, 0);
@@ -236,7 +238,6 @@ export class CapsuleHeroScene {
     this.stop();
     window.removeEventListener("pointermove", this.onPointer);
     disposeObject(this.scene);
-    this.scene.environment?.dispose();
     this.renderer.dispose();
   }
 }

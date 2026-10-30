@@ -8,13 +8,13 @@ export function SiteFooter({ companies }: { companies: Company[] }) {
   return (
     <footer className="bg-ink text-white/80">
       <div className="container-x py-12 sm:py-16">
-        <div className="flex items-center gap-3">
+        <Link href="/" className="inline-flex items-center gap-3 transition-opacity hover:opacity-90">
           <CapsuleMark className="h-10 w-10" />
           <div>
             <p className="font-display text-xl font-semibold text-white">L&amp;K Pharma Network</p>
             <p className="text-sm text-white/60">Licensed wholesale distributors · For trade buyers only</p>
           </div>
-        </div>
+        </Link>
 
         <div className="mt-10 grid gap-8 md:grid-cols-2">
           {companies.map((c) => {
@@ -65,9 +65,15 @@ export function SiteFooter({ companies }: { companies: Company[] }) {
             © {new Date().getFullYear()} L&amp;K Pharma Network. Wholesale distribution under the Drugs &amp; Cosmetics
             Act. No direct sale to patients.
           </p>
-          <Link href="/admin" className="hover:text-white">
-            Staff login
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link href="/" className="hover:text-white">
+              Network Home
+            </Link>
+            <span>·</span>
+            <Link href="/admin" className="hover:text-white">
+              Staff login
+            </Link>
+          </div>
         </div>
       </div>
     </footer>

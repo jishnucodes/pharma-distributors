@@ -41,12 +41,16 @@ export function createRenderer(canvas: HTMLCanvasElement, maxDpr = 2) {
   return renderer;
 }
 
-/** Soft studio reflections without shipping an HDR file. */
+/** Soft studio reflections without shipping an HDR file, cached globally for high performance. */
+let cachedEnvTexture: THREE.Texture | null = null;
+
 export function applyStudioLighting(renderer: THREE.WebGLRenderer, scene: THREE.Scene) {
-  const pmrem = new THREE.PMREMGenerator(renderer);
-  const env = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
-  scene.environment = env;
-  pmrem.dispose();
+  if (!cachedEnvTexture) {
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    cachedEnvTexture = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    pmrem.dispose();
+  }
+  scene.environment = cachedEnvTexture;
 
   const key = new THREE.DirectionalLight(0xffffff, 1.6);
   key.position.set(3, 5, 6);
@@ -54,7 +58,7 @@ export function applyStudioLighting(renderer: THREE.WebGLRenderer, scene: THREE.
   const rim = new THREE.DirectionalLight(0xfff3e0, 0.8);
   rim.position.set(-5, -2, -3);
   scene.add(rim);
-  return env;
+  return cachedEnvTexture;
 }
 
 export function disposeObject(root: THREE.Object3D) {

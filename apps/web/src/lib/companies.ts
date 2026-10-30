@@ -6,9 +6,12 @@ export function isCompanySlug(slug: string): boolean {
   return (COMPANY_SLUGS as readonly string[]).includes(slug);
 }
 
-/** Colours used by the WebGL scenes (CSS uses the matching variables in globals.css). */
+/** Colours used by the WebGL scenes (CSS uses the matching variables in globals.css).
+ * Lakshmi Pharma: Vibrant Medical Crimson Red
+ * Kothittil Pharma: Royal Clinical Blue
+ */
 export const COMPANY_COLORS: Record<string, { main: string; deep: string; soft: string }> = {
-  "lakshmi-pharma": { main: "#0E7C70", deep: "#095A51", soft: "#DCF0EB" },
+  "lakshmi-pharma": { main: "#E11D48", deep: "#9F1239", soft: "#FFE4E6" },
   "kothittil-pharma": { main: "#2450C8", deep: "#173A9A", soft: "#E1E8FB" },
 };
 
@@ -24,7 +27,7 @@ export function fallbackCompany(slug: string): Company {
     slug,
     name: isLakshmi ? "Lakshmi Pharma" : "The Kothittil Pharmaceutical Distributor",
     shortName: isLakshmi ? "Lakshmi" : "Kothittil",
-    accentColor: isLakshmi ? "teal" : "blue",
+    accentColor: isLakshmi ? "red" : "blue",
     tagline: isLakshmi
       ? "Authorized Ethical & Generics Pharmaceutical Distribution"
       : "Specialty Therapeutics, Critical Care & Institutional Supply",

@@ -11,7 +11,7 @@ module.exports = {
           mute: "#66736F",
         },
         line: "#E2DED4",
-        lakshmi: { DEFAULT: "#0E7C70", deep: "#095A51", soft: "#DCF0EB" },
+        lakshmi: { DEFAULT: "#E11D48", deep: "#9F1239", soft: "#FFE4E6" },
         kothittil: { DEFAULT: "#2450C8", deep: "#173A9A", soft: "#E1E8FB" },
         // Per-company accent, driven by [data-company] CSS variables
         accent: {

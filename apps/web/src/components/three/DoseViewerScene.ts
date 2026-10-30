@@ -27,6 +27,10 @@ export class DoseViewerScene {
     this.build();
     this.resize();
 
+    // Shader pre-warm on GPU
+    this.renderer.compile(this.scene, this.camera);
+    this.render(0);
+
     canvas.addEventListener("pointerdown", this.onDown);
     window.addEventListener("pointermove", this.onMove);
     window.addEventListener("pointerup", this.onUp);
@@ -99,14 +103,16 @@ export class DoseViewerScene {
   }
 
   private render(dt: number) {
-    const t = this.clock.elapsedTime;
     const rm = this.opts.reducedMotion;
+    // Release drag friction
     if (!this.drag.active) {
-      // Fling, then drift home
       this.rot.x += this.vel.x;
-      this.vel.multiplyScalar(Math.exp(-dt * 4));
+      this.rot.y += this.vel.y;
+      this.vel.multiplyScalar(0.92);
+      this.rot.x = THREE.MathUtils.lerp(this.rot.x, 0, 1 - Math.exp(-dt * 0.8));
       this.rot.y = THREE.MathUtils.lerp(this.rot.y, 0, 1 - Math.exp(-dt * 1.5));
     }
+    const t = this.clock.elapsedTime;
     const sway = rm ? 0 : Math.sin(t * 0.5) * 0.25;
     this.pivot.rotation.set(this.rot.y, this.rot.x + sway, 0);
     if (!rm) this.pivot.position.y = Math.sin(t * 0.8) * 0.05;
@@ -120,7 +126,6 @@ export class DoseViewerScene {
     window.removeEventListener("pointerup", this.onUp);
     window.removeEventListener("pointercancel", this.onUp);
     disposeObject(this.scene);
-    this.scene.environment?.dispose();
     this.renderer.dispose();
   }
 }

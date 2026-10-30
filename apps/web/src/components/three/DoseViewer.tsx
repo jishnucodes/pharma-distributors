@@ -26,7 +26,6 @@ export function DoseViewer({ className = "", hint = true, ...opts }: Props) {
       const [{ DoseViewerScene }, { supportsWebGL }] = await Promise.all([
         import("./DoseViewerScene"),
         import("./models"),
-        document.fonts?.ready,
       ]);
       if (cancelled) return;
       if (!supportsWebGL()) return setStatus("failed");
