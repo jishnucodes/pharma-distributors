@@ -123,18 +123,18 @@ export function CompanyHeader({ company }: { company: Company }) {
       </div>
 
       {/* Main Navigation Bar */}
-      <div className="container-wide flex h-16 sm:h-[70px] items-center justify-between gap-3 sm:gap-6">
+      <div className="container-wide flex h-16 sm:h-[70px] items-center justify-between gap-2 sm:gap-6">
         {/* Brand Anchor (Logo + Title) */}
         <Link
           href={`/${company.slug}`}
-          className="group flex items-center gap-2.5 sm:gap-3 rounded-lg focus:outline-none"
+          className="group flex items-center gap-2 sm:gap-3 rounded-lg focus:outline-none min-w-0 flex-1 sm:flex-initial"
           aria-label={`${company.name} Home`}
         >
-          <CapsuleMark className="h-8 w-8 sm:h-9 sm:w-9 shrink-0 transition-transform group-hover:scale-105" />
-          <span className="leading-tight min-w-0">
-            <span className="block truncate font-display text-base sm:text-lg lg:text-xl font-bold tracking-tight text-ink group-hover:text-accent transition-colors">
+          <CapsuleMark className="h-7 w-7 sm:h-9 sm:w-9 shrink-0 transition-transform group-hover:scale-105" />
+          <span className="leading-tight min-w-0 truncate">
+            <span className="block truncate font-display text-sm sm:text-lg lg:text-xl font-bold tracking-tight text-ink group-hover:text-accent transition-colors">
               {company.shortName}{" "}
-              <span className="font-semibold text-ink-soft sm:inline">Pharma</span>
+              <span className="font-semibold text-ink-soft hidden xs:inline">Pharma</span>
             </span>
             <span className="hidden sm:block text-[0.7rem] font-medium text-ink-mute tracking-wide">
               Authorized Wholesale Distributor
@@ -167,7 +167,7 @@ export function CompanyHeader({ company }: { company: Company }) {
         </nav>
 
         {/* Right Controls: Search, Enquiry List CTA & Mobile Menu Toggle */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
           {/* Search Catalogue Shortcut */}
           <Link
             href={`/${company.slug}/products`}
@@ -181,14 +181,14 @@ export function CompanyHeader({ company }: { company: Company }) {
           {/* Primary Enquiry List CTA */}
           <button
             onClick={() => openInquiry()}
-            className="btn-primary min-h-[38px] sm:min-h-[42px] gap-2 px-3 sm:px-4 text-xs sm:text-sm font-semibold shadow-xs"
+            className="btn-primary !min-h-[36px] sm:!min-h-[42px] gap-1.5 sm:gap-2 !px-2.5 sm:!px-4 !text-xs sm:!text-sm font-semibold shadow-xs shrink-0"
             aria-label={`Enquiry list with ${totalCount} items`}
           >
-            <ClipboardList className="h-4 w-4" aria-hidden="true" />
+            <ClipboardList className="h-3.5 w-3.5 sm:h-4 sm:w-4" aria-hidden="true" />
             <span className="hidden sm:inline">Enquiry List</span>
-            <span className="sm:hidden">Enquiry</span>
+            <span className="sm:hidden text-xs">List</span>
             <span
-              className={`grid h-5 min-w-5 place-items-center rounded-full px-1 text-[0.7rem] font-bold transition-transform ${
+              className={`grid h-4.5 min-w-4.5 sm:h-5 sm:min-w-5 place-items-center rounded-full px-1 text-[0.65rem] sm:text-[0.7rem] font-bold transition-transform ${
                 totalCount ? "bg-white text-accent scale-105" : "bg-white/25 text-white"
               }`}
             >
@@ -199,11 +199,11 @@ export function CompanyHeader({ company }: { company: Company }) {
           {/* Mobile / Tablet Menu Button (Hamburger) */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="inline-flex lg:hidden items-center justify-center h-9 w-9 sm:h-10 sm:w-10 rounded-xl border border-line bg-white/90 text-ink-soft hover:text-ink hover:bg-white shadow-xs transition-colors"
+            className="inline-flex lg:hidden items-center justify-center h-8.5 w-8.5 sm:h-10 sm:w-10 rounded-xl border border-line bg-white/90 text-ink-soft hover:text-ink hover:bg-white shadow-xs transition-colors shrink-0"
             aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
             aria-expanded={mobileMenuOpen}
           >
-            {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            {mobileMenuOpen ? <X className="h-4.5 w-4.5 sm:h-5 sm:w-5" /> : <Menu className="h-4.5 w-4.5 sm:h-5 sm:w-5" />}
           </button>
         </div>
       </div>

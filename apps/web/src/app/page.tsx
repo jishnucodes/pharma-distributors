@@ -39,22 +39,22 @@ export default async function HomePage() {
         <CapsuleStory lakshmi={lakshmi} kothottil={kothottil} />
 
         {/* Choose a distributor */}
-        {/* <section id="choose" className="scroll-mt-16 py-16 sm:py-24">
+        <section id="choose" className="scroll-mt-16 py-10 sm:py-20">
           <div className="container-x">
-            <p className="eyebrow !text-ink-soft">Step inside</p>
-            <h2 className="mt-2 max-w-2xl font-display text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">
+            <p className="eyebrow !text-ink-soft text-xs sm:text-sm">Step inside</p>
+            <h2 className="mt-1.5 max-w-2xl font-display text-2xl font-semibold leading-tight tracking-tight sm:text-4xl lg:text-5xl">
               Choose your distributor
             </h2>
-            <p className="mt-3 max-w-2xl text-lg text-ink-soft">
+            <p className="mt-2 max-w-2xl text-sm sm:text-lg text-ink-soft">
               Search by brand name or by salt (composition) — for example “BISY 2.5” or “Bisoprolol”.
             </p>
-            <div className="mt-10 grid gap-6 lg:grid-cols-2">
+            <div className="mt-6 sm:mt-10 grid gap-5 sm:gap-6 lg:grid-cols-2">
               {companies.map((c) => (
                 <DistributorCard key={c.slug} company={c} />
               ))}
             </div>
           </div>
-        </section> */}
+        </section>
 
         {/* How enquiry works */}
         <section className="border-y border-line bg-white py-16 sm:py-24">
@@ -125,26 +125,26 @@ function DistributorCard({ company }: { company: Company }) {
         >
           <span className="absolute left-8 top-4 h-4 w-40 rounded-full bg-white/25" />
         </div>
-        <div className="absolute bottom-4 left-6 flex gap-2">
+        <div className="absolute bottom-3 left-4 flex flex-wrap gap-1.5 sm:bottom-4 sm:left-6 sm:gap-2">
           {products !== undefined && (
-            <span className="rounded-full bg-white px-3 py-1 text-sm font-semibold" style={{ color: color.deep }}>
+            <span className="rounded-full bg-white px-2.5 py-0.5 text-xs sm:text-sm font-semibold shadow-2xs" style={{ color: color.deep }}>
               {products} products
             </span>
           )}
           {makers !== undefined && (
-            <span className="rounded-full bg-white px-3 py-1 text-sm font-semibold" style={{ color: color.deep }}>
+            <span className="rounded-full bg-white px-2.5 py-0.5 text-xs sm:text-sm font-semibold shadow-2xs" style={{ color: color.deep }}>
               {makers} manufacturers
             </span>
           )}
         </div>
       </div>
-      <div className="p-6 sm:p-8">
-        <h3 className="font-display text-2xl font-semibold leading-tight sm:text-3xl">{company.name}</h3>
-        {company.tagline && <p className="mt-1 text-base font-medium" style={{ color: color.deep }}>{company.tagline}</p>}
-        <p className="mt-3 line-clamp-3 text-base leading-relaxed text-ink-soft">{company.description}</p>
+      <div className="p-4 sm:p-8">
+        <h3 className="font-display text-xl font-semibold leading-tight sm:text-3xl">{company.name}</h3>
+        {company.tagline && <p className="mt-1 text-sm sm:text-base font-medium" style={{ color: color.deep }}>{company.tagline}</p>}
+        <p className="mt-2.5 line-clamp-3 text-sm sm:text-base leading-relaxed text-ink-soft">{company.description}</p>
 
-        <form action={`/${company.slug}/products`} className="mt-6" role="search">
-          <label htmlFor={`q-${company.slug}`} className="text-base font-semibold">
+        <form action={`/${company.slug}/products`} className="mt-5 sm:mt-6" role="search">
+          <label htmlFor={`q-${company.slug}`} className="text-sm sm:text-base font-semibold block">
             Search {company.shortName}&apos;s catalogue
           </label>
           <div className="mt-2 flex gap-2">
@@ -153,9 +153,9 @@ function DistributorCard({ company }: { company: Company }) {
               name="q"
               type="search"
               placeholder="Brand or salt name"
-              className="field min-w-0 flex-1"
+              className="field min-w-0 flex-1 text-base"
             />
-            <button type="submit" className="btn-primary shrink-0 px-5">
+            <button type="submit" className="btn-primary shrink-0 px-4 sm:px-5">
               <Search className="h-5 w-5" aria-hidden="true" />
               <span className="sr-only sm:not-sr-only">Search</span>
             </button>

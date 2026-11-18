@@ -543,22 +543,22 @@ export default function AdminDashboardPage() {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col text-xs">
       {/* Top Navbar */}
-      <header className="bg-slate-900 text-white h-16 border-b border-slate-800 flex items-center justify-between px-6 shrink-0">
-        <div className="flex items-center gap-4">
-          <Link href="/" className="flex items-center gap-2 text-white">
+      <header className="bg-slate-900 text-white h-16 border-b border-slate-800 flex items-center justify-between px-3.5 sm:px-6 shrink-0">
+        <div className="flex items-center gap-2.5 sm:gap-4 min-w-0">
+          <Link href="/" className="flex items-center gap-2 text-white shrink-0">
             <div className="w-8 h-8 rounded-lg bg-teal-600 flex items-center justify-center font-black text-sm">
               L&amp;K
             </div>
-            <span className="font-bold text-sm tracking-tight">L &amp; K Administration</span>
+            <span className="font-bold text-sm tracking-tight truncate">L &amp; K Admin</span>
           </Link>
 
-          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700">
+          <span className="hidden sm:inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700 truncate">
             {isSuper ? "Super Administrator" : "Company Administrator"}
           </span>
         </div>
 
-        <div className="flex items-center gap-4">
-          <div className="text-right hidden sm:block">
+        <div className="flex items-center gap-2.5 sm:gap-4 shrink-0">
+          <div className="text-right hidden md:block">
             <div className="font-bold text-white text-xs">{currentUser.name}</div>
             <div className="text-[10px] text-slate-400">{currentUser.email}</div>
           </div>
@@ -566,7 +566,7 @@ export default function AdminDashboardPage() {
           <button
             type="button"
             onClick={handleLogout}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors"
+            className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors"
           >
             <LogOut className="w-3.5 h-3.5" />
             <span>Sign Out</span>
@@ -574,10 +574,101 @@ export default function AdminDashboardPage() {
         </div>
       </header>
 
+      {/* Mobile Horizontal Tabs Pill Bar */}
+      <div className="md:hidden bg-white border-b border-slate-200 px-3 py-2 overflow-x-auto no-scrollbar flex items-center gap-1.5 touch-pan-x sticky top-0 z-20 shadow-xs">
+        <button
+          type="button"
+          onClick={() => handleTabChange("overview")}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors shrink-0 ${
+            activeTab === "overview" ? "bg-slate-900 text-white font-bold" : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+          }`}
+        >
+          <LayoutDashboard className="w-3.5 h-3.5" />
+          <span>Overview</span>
+          {overviewLoading && <Loader2 className="w-3 h-3 animate-spin text-teal-400" />}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => handleTabChange("brand_matrix")}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors shrink-0 ${
+            activeTab === "brand_matrix" ? "bg-slate-900 text-white font-bold" : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+          }`}
+        >
+          <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+          <span>Brand Scope</span>
+          {brandsLoading && <Loader2 className="w-3 h-3 animate-spin text-teal-400" />}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => handleTabChange("products")}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors shrink-0 ${
+            activeTab === "products" ? "bg-slate-900 text-white font-bold" : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+          }`}
+        >
+          <Package className="w-3.5 h-3.5" />
+          <span>Products</span>
+          {productsLoading && <Loader2 className="w-3 h-3 animate-spin text-teal-400" />}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => handleTabChange("inquiries")}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors shrink-0 ${
+            activeTab === "inquiries" ? "bg-slate-900 text-white font-bold" : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+          }`}
+        >
+          <MessageSquare className="w-3.5 h-3.5" />
+          <span>Inquiries</span>
+          {inquiriesLoading && <Loader2 className="w-3 h-3 animate-spin text-teal-400" />}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => handleTabChange("company_profile")}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors shrink-0 ${
+            activeTab === "company_profile" ? "bg-slate-900 text-white font-bold" : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+          }`}
+        >
+          <Building2 className="w-3.5 h-3.5" />
+          <span>Profiles</span>
+          {savingCompanyProfile && <Loader2 className="w-3 h-3 animate-spin text-teal-400" />}
+        </button>
+
+        {isSuper && (
+          <>
+            <button
+              type="button"
+              onClick={() => handleTabChange("manufacturers")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors shrink-0 ${
+                activeTab === "manufacturers" ? "bg-slate-900 text-white font-bold" : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+              }`}
+            >
+              <Layers className="w-3.5 h-3.5" />
+              <span>Manufacturers</span>
+              {brandsLoading && <Loader2 className="w-3 h-3 animate-spin text-teal-400" />}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleTabChange("ingredients")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors shrink-0 ${
+                activeTab === "ingredients" ? "bg-slate-900 text-white font-bold" : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+              }`}
+            >
+              <FlaskConical className="w-3.5 h-3.5" />
+              <span>Ingredients</span>
+              {ingredientsLoading && <Loader2 className="w-3 h-3 animate-spin text-teal-400" />}
+            </button>
+          </>
+        )}
+      </div>
+
       {/* Main Body with Sidebar + Tab Content */}
-      <div className="flex-1 flex flex-col md:flex-row max-w-7xl w-full mx-auto p-4 sm:p-6 gap-6">
-        {/* Sidebar Nav */}
-        <aside className="w-full md:w-64 bg-white rounded-2xl border border-slate-200 p-4 shrink-0 shadow-xs space-y-1">
+      <div className="flex-1 flex flex-col md:flex-row max-w-7xl w-full mx-auto p-3 sm:p-6 gap-4 sm:gap-6 min-w-0">
+        {/* Desktop Sidebar Nav */}
+        <aside className="hidden md:block w-64 bg-white rounded-2xl border border-slate-200 p-4 shrink-0 shadow-xs space-y-1 self-start sticky top-6">
           <div className="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
             Distributor Management
           </div>
@@ -729,7 +820,7 @@ export default function AdminDashboardPage() {
         </aside>
 
         {/* Main Content Area */}
-        <main className="flex-1 space-y-6">
+        <main className="flex-1 space-y-4 sm:space-y-6 min-w-0">
           {/* Status Alert Banner */}
           {statusMessage && (
             <div
@@ -824,10 +915,10 @@ export default function AdminDashboardPage() {
                 </div>
 
                 {/* KPI Cards */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                  <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs">
-                    <div className="text-slate-500 font-semibold mb-1">Catalog Formulations</div>
-                    <div className="text-2xl font-black text-slate-900">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+                  <div className="bg-white p-3.5 sm:p-5 rounded-2xl border border-slate-200 shadow-2xs">
+                    <div className="text-slate-500 font-semibold mb-1 text-[11px] sm:text-xs">Catalog Formulations</div>
+                    <div className="text-xl sm:text-2xl font-black text-slate-900">
                       {overviewData.stats.totalProducts}
                     </div>
                     <div className="text-[10px] text-teal-600 font-semibold mt-1">
@@ -835,25 +926,25 @@ export default function AdminDashboardPage() {
                     </div>
                   </div>
 
-                  <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs">
-                    <div className="text-slate-500 font-semibold mb-1">Pending Inquiries</div>
-                    <div className="text-2xl font-black text-amber-600">
+                  <div className="bg-white p-3.5 sm:p-5 rounded-2xl border border-slate-200 shadow-2xs">
+                    <div className="text-slate-500 font-semibold mb-1 text-[11px] sm:text-xs">Pending Inquiries</div>
+                    <div className="text-xl sm:text-2xl font-black text-amber-600">
                       {overviewData.stats.pendingInquiries}
                     </div>
                     <div className="text-[10px] text-slate-400 mt-1">Awaiting quotation review</div>
                   </div>
 
-                  <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs">
-                    <div className="text-slate-500 font-semibold mb-1">Authorized Brands</div>
-                    <div className="text-2xl font-black text-slate-900">
+                  <div className="bg-white p-3.5 sm:p-5 rounded-2xl border border-slate-200 shadow-2xs">
+                    <div className="text-slate-500 font-semibold mb-1 text-[11px] sm:text-xs">Authorized Brands</div>
+                    <div className="text-xl sm:text-2xl font-black text-slate-900">
                       {overviewData.stats.totalManufacturers}
                     </div>
                     <div className="text-[10px] text-slate-400 mt-1">Configured per firm</div>
                   </div>
 
-                  <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs">
-                    <div className="text-slate-500 font-semibold mb-1">Active APIs</div>
-                    <div className="text-2xl font-black text-slate-900">
+                  <div className="bg-white p-3.5 sm:p-5 rounded-2xl border border-slate-200 shadow-2xs">
+                    <div className="text-slate-500 font-semibold mb-1 text-[11px] sm:text-xs">Active APIs</div>
+                    <div className="text-xl sm:text-2xl font-black text-slate-900">
                       {overviewData.stats.totalIngredients}
                     </div>
                     <div className="text-[10px] text-slate-400 mt-1">Canonical compositions</div>
@@ -861,8 +952,8 @@ export default function AdminDashboardPage() {
                 </div>
 
                 {/* Quick Actions / Configuration Card */}
-                <div className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-2xl p-6 text-white space-y-3">
-                  <div className="flex items-center justify-between">
+                <div className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-2xl p-4 sm:p-6 text-white space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
                       <h3 className="font-bold text-sm text-teal-300 uppercase tracking-wider">
                         Distributor Brand Scope Control
@@ -874,7 +965,7 @@ export default function AdminDashboardPage() {
                     <button
                       type="button"
                       onClick={() => handleTabChange("brand_matrix")}
-                      className="px-4 py-2 bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold rounded-xl text-xs transition-colors shrink-0"
+                      className="px-4 py-2 bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold rounded-xl text-xs transition-colors shrink-0 self-start sm:self-auto"
                     >
                       Configure Brand Scope
                     </button>
@@ -1066,7 +1157,7 @@ export default function AdminDashboardPage() {
                         key={mfg.id}
                         className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden"
                       >
-                        <div className="p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50/50">
+                        <div className="p-3.5 sm:p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 bg-slate-50/50">
                           <div className="flex items-center gap-3">
                             <ManufacturerLogo
                               logoUrl={mfg.logoUrl}
@@ -1097,7 +1188,7 @@ export default function AdminDashboardPage() {
                         </div>
 
                         {/* Distributor Authorization Switches */}
-                        <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="p-3.5 sm:p-5 grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                           {/* Lakshmi Pharma Configuration Card */}
                           {lakshmiCompany && (
                             <div
@@ -1286,21 +1377,21 @@ export default function AdminDashboardPage() {
               </div>
 
               {/* Search & Filters */}
-              <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs flex flex-col sm:flex-row gap-3">
+              <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200 shadow-2xs flex flex-col sm:flex-row gap-3">
                 <div className="relative flex-1">
-                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3 sm:top-2.5" />
                   <input
                     type="text"
                     value={productSearch}
                     onChange={(e) => setProductSearch(e.target.value)}
                     placeholder="Search by product name, dosage form, packaging, active ingredient..."
-                    className="w-full h-9 pl-9 pr-3 rounded-lg border border-slate-200 text-xs text-slate-900 placeholder:text-slate-400"
+                    className="w-full h-10 sm:h-9 pl-9 pr-8 rounded-lg border border-slate-200 text-base sm:text-xs text-slate-900 placeholder:text-slate-400"
                   />
                   {productSearch && (
                     <button
                       type="button"
                       onClick={() => setProductSearch("")}
-                      className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600"
+                      className="absolute right-3 top-3 sm:top-2.5 text-slate-400 hover:text-slate-600"
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -1312,7 +1403,7 @@ export default function AdminDashboardPage() {
                   <select
                     value={productDosageFilter}
                     onChange={(e) => setProductDosageFilter(e.target.value)}
-                    className="h-9 px-3 rounded-lg border border-slate-200 text-xs text-slate-800 bg-white"
+                    className="h-10 sm:h-9 px-3 rounded-lg border border-slate-200 text-base sm:text-xs text-slate-800 bg-white flex-1 sm:flex-initial"
                   >
                     <option value="ALL">All Dosage Forms</option>
                     <option value="Tablet">Tablets</option>
@@ -1326,7 +1417,7 @@ export default function AdminDashboardPage() {
               </div>
 
               {/* Products Table */}
-              <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-2xs relative">
+              <div className="bg-white rounded-xl sm:rounded-2xl border border-slate-200 overflow-hidden shadow-2xs relative">
                 {/* Active Loading Overlay during pagination / debounced search */}
                 {productsLoading && filteredProducts.length > 0 && (
                   <div className="absolute inset-0 bg-white/70 backdrop-blur-2xs flex items-center justify-center z-10 transition-opacity">
@@ -1337,16 +1428,16 @@ export default function AdminDashboardPage() {
                   </div>
                 )}
 
-                <div className="overflow-x-auto min-h-[300px]">
-                  <table className="w-full text-left border-collapse text-xs">
+                <div className="overflow-x-auto touch-pan-x min-h-[300px]">
+                  <table className="w-full text-left border-collapse text-xs min-w-[700px]">
                     <thead>
                       <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 uppercase text-[10px] font-bold tracking-wider">
-                        <th className="py-3 px-4">Product Name &amp; Pack</th>
-                        <th className="py-3 px-4">Brand / Manufacturer</th>
-                        <th className="py-3 px-4">Composition</th>
-                        <th className="py-3 px-4 text-center">Lakshmi Pharma</th>
-                        <th className="py-3 px-4 text-center">The Kothittil</th>
-                        <th className="py-3 px-4 text-right">Actions</th>
+                        <th className="py-3 px-3 sm:px-4 min-w-[180px]">Product Name &amp; Pack</th>
+                        <th className="py-3 px-3 sm:px-4 min-w-[130px]">Brand / Manufacturer</th>
+                        <th className="py-3 px-3 sm:px-4 min-w-[160px]">Composition</th>
+                        <th className="py-3 px-3 sm:px-4 text-center min-w-[110px]">Lakshmi Pharma</th>
+                        <th className="py-3 px-3 sm:px-4 text-center min-w-[110px]">The Kothittil</th>
+                        <th className="py-3 px-3 sm:px-4 text-right min-w-[80px]">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
@@ -1513,9 +1604,9 @@ export default function AdminDashboardPage() {
                 </div>
 
                 {/* Server-Side Pagination Bar */}
-                <div className="p-4 border-t border-slate-200 bg-slate-50/70 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-600">
-                  <div className="flex items-center gap-2">
-                    <span>
+                <div className="p-3.5 sm:p-4 border-t border-slate-200 bg-slate-50/70 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-600">
+                  <div className="flex flex-wrap items-center justify-between sm:justify-start gap-2 w-full sm:w-auto">
+                    <span className="text-[11px] sm:text-xs">
                       Showing {productPagination.total === 0 ? 0 : (productPage - 1) * productLimit + 1} to{" "}
                       {Math.min(productPage * productLimit, productPagination.total)} of{" "}
                       <strong className="text-slate-900">{productPagination.total}</strong> products
@@ -1536,7 +1627,7 @@ export default function AdminDashboardPage() {
                     </select>
                   </div>
 
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center justify-center gap-1.5 w-full sm:w-auto">
                     <button
                       type="button"
                       disabled={productPage <= 1 || productsLoading}
@@ -1545,13 +1636,13 @@ export default function AdminDashboardPage() {
                         setProductPage(newP);
                         loadProducts(newP, productSearch, productDosageFilter, productLimit);
                       }}
-                      className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      className="flex-1 sm:flex-none px-3.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-center"
                     >
                       Previous
                     </button>
 
-                    <span className="px-2 font-semibold text-slate-700">
-                      Page {productPage} of {productPagination.totalPages}
+                    <span className="px-2 font-semibold text-slate-700 text-[11px] sm:text-xs shrink-0">
+                      Page {productPage} / {productPagination.totalPages}
                     </span>
 
                     <button
@@ -1562,7 +1653,7 @@ export default function AdminDashboardPage() {
                         setProductPage(newP);
                         loadProducts(newP, productSearch, productDosageFilter, productLimit);
                       }}
-                      className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      className="flex-1 sm:flex-none px-3.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-center"
                     >
                       Next
                     </button>
@@ -1574,8 +1665,8 @@ export default function AdminDashboardPage() {
               {/* PRODUCT EDIT MODAL                                           */}
               {/* ============================================================ */}
               {editingProduct && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-                  <div className="bg-white rounded-2xl max-w-2xl w-full p-6 space-y-4 shadow-xl border border-slate-200 max-h-[90vh] overflow-y-auto">
+                <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-xs">
+                  <div className="bg-white rounded-t-3xl sm:rounded-2xl max-w-2xl w-full p-4 sm:p-6 space-y-4 shadow-xl border border-slate-200 max-h-[92vh] overflow-y-auto">
                     <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                       <div>
                         <h3 className="font-bold text-sm text-slate-900">
@@ -1590,12 +1681,12 @@ export default function AdminDashboardPage() {
                         onClick={() => setEditingProduct(null)}
                         className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100"
                       >
-                        <X className="w-4 h-4" />
+                        <X className="w-5 h-5 sm:w-4 sm:h-4" />
                       </button>
                     </div>
 
                     <form onSubmit={handleSaveProduct} className="space-y-4 text-xs">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                         <div className="space-y-1">
                           <label className="font-semibold text-slate-700 block">
                             Brand / Product Name <span className="text-rose-500">*</span>
@@ -1607,7 +1698,7 @@ export default function AdminDashboardPage() {
                             onChange={(e) =>
                               setProductForm({ ...productForm, name: e.target.value })
                             }
-                            className="w-full h-9 px-3 rounded-lg border border-slate-300 text-slate-900 font-bold"
+                            className="w-full h-10 sm:h-9 px-3 rounded-lg border border-slate-300 text-base sm:text-xs text-slate-900 font-bold"
                           />
                         </div>
 
@@ -1623,7 +1714,7 @@ export default function AdminDashboardPage() {
                               setProductForm({ ...productForm, dosageForm: e.target.value })
                             }
                             placeholder="Tablet / Capsule / Syrup / Injection"
-                            className="w-full h-9 px-3 rounded-lg border border-slate-300 text-slate-900"
+                            className="w-full h-10 sm:h-9 px-3 rounded-lg border border-slate-300 text-base sm:text-xs text-slate-900"
                           />
                         </div>
 
@@ -1639,7 +1730,7 @@ export default function AdminDashboardPage() {
                               setProductForm({ ...productForm, packaging: e.target.value })
                             }
                             placeholder="e.g. 10x10 Alu-Alu / 100ml Bottle"
-                            className="w-full h-9 px-3 rounded-lg border border-slate-300 text-slate-900"
+                            className="w-full h-10 sm:h-9 px-3 rounded-lg border border-slate-300 text-base sm:text-xs text-slate-900"
                           />
                         </div>
 
@@ -1654,7 +1745,7 @@ export default function AdminDashboardPage() {
                               setProductForm({ ...productForm, schedule: e.target.value })
                             }
                             placeholder="e.g. Schedule H Prescription Drug"
-                            className="w-full h-9 px-3 rounded-lg border border-slate-300 text-slate-900"
+                            className="w-full h-10 sm:h-9 px-3 rounded-lg border border-slate-300 text-base sm:text-xs text-slate-900"
                           />
                         </div>
 
@@ -1669,7 +1760,7 @@ export default function AdminDashboardPage() {
                               setProductForm({ ...productForm, storageConditions: e.target.value })
                             }
                             placeholder="e.g. Store below 25°C in a dry place. Protect from direct light."
-                            className="w-full h-9 px-3 rounded-lg border border-slate-300 text-slate-900"
+                            className="w-full h-10 sm:h-9 px-3 rounded-lg border border-slate-300 text-base sm:text-xs text-slate-900"
                           />
                         </div>
 
@@ -1684,13 +1775,13 @@ export default function AdminDashboardPage() {
                               setProductForm({ ...productForm, description: e.target.value })
                             }
                             placeholder="Therapeutic classification, indications, B2B wholesale remarks..."
-                            className="w-full p-2.5 rounded-lg border border-slate-300 text-slate-900"
+                            className="w-full p-2.5 rounded-lg border border-slate-300 text-base sm:text-xs text-slate-900"
                           />
                         </div>
                       </div>
 
                       {/* Active Ingredients Display */}
-                      <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/80 space-y-2">
+                      <div className="bg-slate-50 p-3 sm:p-4 rounded-xl border border-slate-200/80 space-y-2">
                         <div className="font-bold text-slate-800 text-[11px] uppercase tracking-wider">
                           Active Pharmaceutical Ingredients (Fixed Formulation)
                         </div>
@@ -1698,7 +1789,7 @@ export default function AdminDashboardPage() {
                           {editingProduct.ingredients?.map((i: any) => (
                             <span
                               key={i.id}
-                              className="px-2 py-1 rounded-md bg-white border border-slate-200 text-slate-800 font-mono text-[11px]"
+                              className="px-2 py-1 rounded-md bg-white border border-slate-200 text-slate-800 font-mono text-[10px] sm:text-[11px]"
                             >
                               {i.ingredient?.name} {i.quantity} {i.unit} ({i.perBasis})
                             </span>
@@ -1711,14 +1802,14 @@ export default function AdminDashboardPage() {
                         <button
                           type="button"
                           onClick={() => setEditingProduct(null)}
-                          className="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 font-semibold"
+                          className="px-4 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 font-semibold"
                         >
                           Cancel
                         </button>
                         <button
                           type="submit"
                           disabled={savingProduct}
-                          className="px-5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold flex items-center gap-1.5 disabled:opacity-50"
+                          className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold flex items-center gap-1.5 disabled:opacity-50"
                         >
                           {savingProduct ? (
                             <>
@@ -1767,21 +1858,21 @@ export default function AdminDashboardPage() {
               </div>
 
               {/* Inquiries Filters */}
-              <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs flex flex-col sm:flex-row gap-3">
+              <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200 shadow-2xs flex flex-col sm:flex-row gap-3">
                 <div className="relative flex-1">
-                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3 sm:top-2.5" />
                   <input
                     type="text"
                     value={inquirySearch}
                     onChange={(e) => setInquirySearch(e.target.value)}
                     placeholder="Search by pharmacy name, buyer name, phone, or product..."
-                    className="w-full h-9 pl-9 pr-3 rounded-lg border border-slate-200 text-xs text-slate-900"
+                    className="w-full h-10 sm:h-9 pl-9 pr-8 rounded-lg border border-slate-200 text-base sm:text-xs text-slate-900"
                   />
                   {inquirySearch && (
                     <button
                       type="button"
                       onClick={() => setInquirySearch("")}
-                      className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600"
+                      className="absolute right-3 top-3 sm:top-2.5 text-slate-400 hover:text-slate-600"
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -1793,7 +1884,7 @@ export default function AdminDashboardPage() {
                   <select
                     value={inquiryStatusFilter}
                     onChange={(e) => setInquiryStatusFilter(e.target.value)}
-                    className="h-9 px-3 rounded-lg border border-slate-200 text-xs text-slate-800 bg-white"
+                    className="h-10 sm:h-9 px-3 rounded-lg border border-slate-200 text-base sm:text-xs text-slate-800 bg-white flex-1 sm:flex-initial"
                   >
                     <option value="ALL">All Inquiries</option>
                     <option value="PENDING">PENDING (New)</option>
@@ -1804,7 +1895,7 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
 
-              <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-2xs relative">
+              <div className="bg-white rounded-xl sm:rounded-2xl border border-slate-200 overflow-hidden shadow-2xs relative">
                 {/* Active Loading Overlay */}
                 {inquiriesLoading && inquiries.length > 0 && (
                   <div className="absolute inset-0 bg-white/70 backdrop-blur-2xs flex items-center justify-center z-10 transition-opacity">
@@ -1815,16 +1906,16 @@ export default function AdminDashboardPage() {
                   </div>
                 )}
 
-                <div className="overflow-x-auto min-h-[220px]">
-                  <table className="w-full text-left border-collapse text-xs">
+                <div className="overflow-x-auto touch-pan-x min-h-[220px]">
+                  <table className="w-full text-left border-collapse text-xs min-w-[650px]">
                     <thead>
                       <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 uppercase text-[10px] font-bold tracking-wider">
-                        <th className="py-3 px-4">Date / Time</th>
-                        <th className="py-3 px-4">Company</th>
-                        <th className="py-3 px-4">Buyer / Pharmacy</th>
-                        <th className="py-3 px-4">Referenced Product</th>
-                        <th className="py-3 px-4">Status</th>
-                        <th className="py-3 px-4 text-right">Actions</th>
+                        <th className="py-3 px-3 sm:px-4 min-w-[90px]">Date / Time</th>
+                        <th className="py-3 px-3 sm:px-4 min-w-[120px]">Company</th>
+                        <th className="py-3 px-3 sm:px-4 min-w-[150px]">Buyer / Pharmacy</th>
+                        <th className="py-3 px-3 sm:px-4 min-w-[160px]">Referenced Product</th>
+                        <th className="py-3 px-3 sm:px-4 min-w-[90px]">Status</th>
+                        <th className="py-3 px-3 sm:px-4 text-right min-w-[110px]">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
@@ -1920,8 +2011,8 @@ export default function AdminDashboardPage() {
 
               {/* Inquiry Edit Modal */}
               {selectedInquiry && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-                  <div className="bg-white rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-xl border border-slate-200">
+                <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-xs">
+                  <div className="bg-white rounded-t-3xl sm:rounded-2xl max-w-lg w-full p-4 sm:p-6 space-y-4 shadow-xl border border-slate-200 max-h-[92vh] overflow-y-auto">
                     <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                       <div>
                         <h3 className="font-bold text-sm text-slate-900">
@@ -1936,11 +2027,11 @@ export default function AdminDashboardPage() {
                         onClick={() => setSelectedInquiry(null)}
                         className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100"
                       >
-                        <X className="w-4 h-4" />
+                        <X className="w-5 h-5 sm:w-4 sm:h-4" />
                       </button>
                     </div>
 
-                    <div className="space-y-2 text-xs bg-slate-50 p-4 rounded-xl border border-slate-100">
+                    <div className="space-y-2 text-xs bg-slate-50 p-3 sm:p-4 rounded-xl border border-slate-100">
                       <div className="flex items-center justify-between">
                         <div>
                           <strong>Buyer:</strong> {selectedInquiry.name}
@@ -1996,7 +2087,7 @@ export default function AdminDashboardPage() {
                         <select
                           value={inquiryStatus}
                           onChange={(e) => setInquiryStatus(e.target.value)}
-                          className="w-full h-9 px-3 rounded-lg border border-slate-300 text-slate-900"
+                          className="w-full h-10 sm:h-9 px-3 rounded-lg border border-slate-300 text-base sm:text-xs text-slate-900"
                         >
                           <option value="PENDING">PENDING (Awaiting Review)</option>
                           <option value="IN_REVIEW">IN_REVIEW (Stock Checking)</option>
@@ -2014,7 +2105,7 @@ export default function AdminDashboardPage() {
                           value={inquiryNotes}
                           onChange={(e) => setInquiryNotes(e.target.value)}
                           placeholder="Batch verification, trade discount quoted, dispatch batch number..."
-                          className="w-full p-2.5 rounded-lg border border-slate-300 text-slate-900"
+                          className="w-full p-2.5 rounded-lg border border-slate-300 text-base sm:text-xs text-slate-900"
                         />
                       </div>
                     </div>
@@ -2023,7 +2114,7 @@ export default function AdminDashboardPage() {
                       <button
                         type="button"
                         onClick={() => setSelectedInquiry(null)}
-                        className="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 font-semibold"
+                        className="px-4 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 font-semibold"
                       >
                         Cancel
                       </button>
@@ -2031,7 +2122,7 @@ export default function AdminDashboardPage() {
                         type="button"
                         disabled={updatingInquiry}
                         onClick={handleUpdateInquiry}
-                        className="px-5 py-2 rounded-xl text-white bg-slate-900 hover:bg-slate-800 font-bold flex items-center gap-1.5 disabled:opacity-50"
+                        className="px-5 py-2.5 rounded-xl text-white bg-slate-900 hover:bg-slate-800 font-bold flex items-center gap-1.5 disabled:opacity-50"
                       >
                         {updatingInquiry ? (
                           <>
@@ -2053,7 +2144,7 @@ export default function AdminDashboardPage() {
           {/* TAB 5: COMPANY PROFILES & SETTINGS                           */}
           {/* ============================================================ */}
           {activeTab === "company_profile" && (
-            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs space-y-6">
+            <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-2xs space-y-5 sm:space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                   <h2 className="text-xl font-bold text-slate-900 tracking-tight">
@@ -2065,13 +2156,13 @@ export default function AdminDashboardPage() {
                 </div>
 
                 {/* Company Switcher Tabs */}
-                <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl">
+                <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl overflow-x-auto touch-pan-x no-scrollbar max-w-full">
                   {overviewData?.companies?.map((c: any) => (
                     <button
                       key={c.id}
                       type="button"
                       onClick={() => loadCompanyProfile(c)}
-                      className={`px-3 py-1.5 rounded-lg font-bold text-xs transition-colors ${
+                      className={`px-3 py-1.5 rounded-lg font-bold text-xs whitespace-nowrap transition-colors ${
                         selectedCompanyId === c.id
                           ? "bg-white text-slate-900 shadow-xs"
                           : "text-slate-600 hover:text-slate-900"
@@ -2084,7 +2175,7 @@ export default function AdminDashboardPage() {
               </div>
 
               <form onSubmit={handleSaveCompanyProfile} className="space-y-4 text-xs">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div className="space-y-1">
                     <label className="font-semibold text-slate-700 block">Company Tagline</label>
                     <input
@@ -2094,7 +2185,7 @@ export default function AdminDashboardPage() {
                         setCompanyProfileForm({ ...companyProfileForm, tagline: e.target.value })
                       }
                       placeholder="e.g. Authorized B2B Pharmaceutical Distributor"
-                      className="w-full h-9 px-3 rounded-lg border border-slate-300 text-slate-900"
+                      className="w-full h-10 sm:h-9 px-3 rounded-lg border border-slate-300 text-base sm:text-xs text-slate-900"
                     />
                   </div>
 
@@ -2106,7 +2197,7 @@ export default function AdminDashboardPage() {
                       onChange={(e) =>
                         setCompanyProfileForm({ ...companyProfileForm, address: e.target.value })
                       }
-                      className="w-full h-9 px-3 rounded-lg border border-slate-300 text-slate-900"
+                      className="w-full h-10 sm:h-9 px-3 rounded-lg border border-slate-300 text-base sm:text-xs text-slate-900"
                     />
                   </div>
 
@@ -2118,7 +2209,7 @@ export default function AdminDashboardPage() {
                       onChange={(e) =>
                         setCompanyProfileForm({ ...companyProfileForm, phone: e.target.value })
                       }
-                      className="w-full h-9 px-3 rounded-lg border border-slate-300 text-slate-900"
+                      className="w-full h-10 sm:h-9 px-3 rounded-lg border border-slate-300 text-base sm:text-xs text-slate-900"
                     />
                   </div>
 
@@ -2130,7 +2221,7 @@ export default function AdminDashboardPage() {
                       onChange={(e) =>
                         setCompanyProfileForm({ ...companyProfileForm, email: e.target.value })
                       }
-                      className="w-full h-9 px-3 rounded-lg border border-slate-300 text-slate-900"
+                      className="w-full h-10 sm:h-9 px-3 rounded-lg border border-slate-300 text-base sm:text-xs text-slate-900"
                     />
                   </div>
 
@@ -2142,7 +2233,7 @@ export default function AdminDashboardPage() {
                       onChange={(e) =>
                         setCompanyProfileForm({ ...companyProfileForm, whatsapp: e.target.value })
                       }
-                      className="w-full h-9 px-3 rounded-lg border border-slate-300 text-slate-900"
+                      className="w-full h-10 sm:h-9 px-3 rounded-lg border border-slate-300 text-base sm:text-xs text-slate-900"
                     />
                   </div>
 
@@ -2154,7 +2245,7 @@ export default function AdminDashboardPage() {
                       onChange={(e) =>
                         setCompanyProfileForm({ ...companyProfileForm, businessHours: e.target.value })
                       }
-                      className="w-full h-9 px-3 rounded-lg border border-slate-300 text-slate-900"
+                      className="w-full h-10 sm:h-9 px-3 rounded-lg border border-slate-300 text-base sm:text-xs text-slate-900"
                     />
                   </div>
 
@@ -2167,7 +2258,7 @@ export default function AdminDashboardPage() {
                         setCompanyProfileForm({ ...companyProfileForm, drugLicenseNo: e.target.value })
                       }
                       placeholder="e.g. DL-KL-20B-123456"
-                      className="w-full h-9 px-3 rounded-lg border border-slate-300 text-slate-900 font-mono"
+                      className="w-full h-10 sm:h-9 px-3 rounded-lg border border-slate-300 text-base sm:text-xs text-slate-900 font-mono"
                     />
                   </div>
 
@@ -2180,7 +2271,7 @@ export default function AdminDashboardPage() {
                         setCompanyProfileForm({ ...companyProfileForm, gstin: e.target.value })
                       }
                       placeholder="e.g. 32AABCU9603R1ZX"
-                      className="w-full h-9 px-3 rounded-lg border border-slate-300 text-slate-900 font-mono"
+                      className="w-full h-10 sm:h-9 px-3 rounded-lg border border-slate-300 text-base sm:text-xs text-slate-900 font-mono"
                     />
                   </div>
 
@@ -2195,7 +2286,7 @@ export default function AdminDashboardPage() {
                         setCompanyProfileForm({ ...companyProfileForm, serviceAreas: e.target.value })
                       }
                       placeholder="Districts, delivery schedule, cold-chain coverage..."
-                      className="w-full p-2.5 rounded-lg border border-slate-300 text-slate-900"
+                      className="w-full p-2.5 rounded-lg border border-slate-300 text-base sm:text-xs text-slate-900"
                     />
                   </div>
 
@@ -2209,16 +2300,16 @@ export default function AdminDashboardPage() {
                       onChange={(e) =>
                         setCompanyProfileForm({ ...companyProfileForm, description: e.target.value })
                       }
-                      className="w-full p-2.5 rounded-lg border border-slate-300 text-slate-900"
+                      className="w-full p-2.5 rounded-lg border border-slate-300 text-base sm:text-xs text-slate-900"
                     />
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 pt-2">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-2">
                   <button
                     type="submit"
                     disabled={savingCompanyProfile}
-                    className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold flex items-center gap-1.5 disabled:opacity-50 transition-colors"
+                    className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold flex items-center justify-center gap-1.5 disabled:opacity-50 transition-colors text-center"
                   >
                     {savingCompanyProfile ? (
                       <>
@@ -2232,7 +2323,7 @@ export default function AdminDashboardPage() {
                   <button
                     type="button"
                     onClick={() => setActiveTab("overview")}
-                    className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold"
+                    className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-center"
                   >
                     Back to Overview
                   </button>
@@ -2270,13 +2361,13 @@ export default function AdminDashboardPage() {
               {/* Add / Edit Manufacturer Form */}
               <form
                 onSubmit={handleSaveManufacturer}
-                className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs space-y-4"
+                className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-2xs space-y-4"
               >
                 <h3 className="font-bold text-sm text-slate-900">
                   Add / Update Manufacturer
                 </h3>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div className="space-y-1">
                     <label className="font-semibold text-slate-700 block">
                       Manufacturer Name <span className="text-rose-500">*</span>
@@ -2287,7 +2378,7 @@ export default function AdminDashboardPage() {
                       value={mfgForm.name}
                       onChange={(e) => setMfgForm({ ...mfgForm, name: e.target.value })}
                       placeholder="e.g. Rhine Life Sciences Pvt. Ltd."
-                      className="w-full h-9 px-3 rounded-lg border border-slate-300 text-slate-900"
+                      className="w-full h-10 sm:h-9 px-3 rounded-lg border border-slate-300 text-base sm:text-xs text-slate-900"
                     />
                   </div>
 
@@ -2300,7 +2391,7 @@ export default function AdminDashboardPage() {
                       value={mfgForm.slug}
                       onChange={(e) => setMfgForm({ ...mfgForm, slug: e.target.value })}
                       placeholder="e.g. rhine-life-sciences"
-                      className="w-full h-9 px-3 rounded-lg border border-slate-300 text-slate-900"
+                      className="w-full h-10 sm:h-9 px-3 rounded-lg border border-slate-300 text-base sm:text-xs text-slate-900"
                     />
                   </div>
 
@@ -2313,7 +2404,7 @@ export default function AdminDashboardPage() {
                       value={mfgForm.website}
                       onChange={(e) => setMfgForm({ ...mfgForm, website: e.target.value })}
                       placeholder="https://www.rhinelifesciences.com"
-                      className="w-full h-9 px-3 rounded-lg border border-slate-300 text-slate-900"
+                      className="w-full h-10 sm:h-9 px-3 rounded-lg border border-slate-300 text-base sm:text-xs text-slate-900"
                     />
                   </div>
 
@@ -2326,7 +2417,7 @@ export default function AdminDashboardPage() {
                       value={mfgForm.logoUrl}
                       onChange={(e) => setMfgForm({ ...mfgForm, logoUrl: e.target.value })}
                       placeholder="/logos/rhine.svg (Leave empty for clean text fallback)"
-                      className="w-full h-9 px-3 rounded-lg border border-slate-300 text-slate-900 font-mono text-[11px]"
+                      className="w-full h-10 sm:h-9 px-3 rounded-lg border border-slate-300 text-base sm:text-xs text-slate-900 font-mono text-[11px]"
                     />
                   </div>
                 </div>
@@ -2348,7 +2439,7 @@ export default function AdminDashboardPage() {
               </form>
 
               {/* Manufacturers Table */}
-              <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-2xs relative">
+              <div className="bg-white rounded-xl sm:rounded-2xl border border-slate-200 overflow-hidden shadow-2xs relative">
                 {brandsLoading && manufacturers.length > 0 && (
                   <div className="absolute inset-0 bg-white/70 backdrop-blur-2xs flex items-center justify-center z-10 transition-opacity">
                     <div className="px-4 py-2.5 rounded-xl bg-slate-900 text-white flex items-center gap-2.5 shadow-lg border border-slate-800">
@@ -2358,67 +2449,69 @@ export default function AdminDashboardPage() {
                   </div>
                 )}
 
-                <table className="w-full text-left border-collapse text-xs">
-                  <thead>
-                    <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 uppercase text-[10px] font-bold tracking-wider">
-                      <th className="py-3 px-4">Brand Logo</th>
-                      <th className="py-3 px-4">Name</th>
-                      <th className="py-3 px-4">Slug</th>
-                      <th className="py-3 px-4">Products</th>
-                      <th className="py-3 px-4">Website</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {brandsLoading && manufacturers.length === 0 ? (
-                      Array.from({ length: 3 }).map((_, idx) => (
-                        <tr key={idx} className="animate-pulse">
-                          <td className="py-3.5 px-4">
-                            <div className="h-7 w-20 bg-slate-200 rounded" />
-                          </td>
-                          <td className="py-3.5 px-4">
-                            <div className="h-4 w-36 bg-slate-200 rounded" />
-                          </td>
-                          <td className="py-3.5 px-4">
-                            <div className="h-4 w-28 bg-slate-100 rounded" />
-                          </td>
-                          <td className="py-3.5 px-4">
-                            <div className="h-4 w-8 bg-slate-200 rounded" />
-                          </td>
-                          <td className="py-3.5 px-4">
-                            <div className="h-4 w-20 bg-slate-100 rounded" />
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      manufacturers.map((m) => (
-                        <tr key={m.id} className="hover:bg-slate-50">
-                          <td className="py-3 px-4">
-                            <ManufacturerLogo logoUrl={m.logoUrl} name={m.name} className="h-7 w-20" />
-                          </td>
-                          <td className="py-3 px-4 font-bold text-slate-900">{m.name}</td>
-                          <td className="py-3 px-4 font-mono text-slate-400">{m.slug}</td>
-                          <td className="py-3 px-4 font-semibold text-slate-700">
-                            {m._count?.products || 0}
-                          </td>
-                          <td className="py-3 px-4 text-slate-500">
-                            {m.website ? (
-                              <a
-                                href={m.website}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="text-teal-600 hover:underline"
-                              >
-                                Visit Site ↗
-                              </a>
-                            ) : (
-                              "—"
-                            )}
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+                <div className="overflow-x-auto touch-pan-x min-h-[160px]">
+                  <table className="w-full text-left border-collapse text-xs min-w-[560px]">
+                    <thead>
+                      <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 uppercase text-[10px] font-bold tracking-wider">
+                        <th className="py-3 px-3 sm:px-4 min-w-[90px]">Brand Logo</th>
+                        <th className="py-3 px-3 sm:px-4 min-w-[140px]">Name</th>
+                        <th className="py-3 px-3 sm:px-4 min-w-[110px]">Slug</th>
+                        <th className="py-3 px-3 sm:px-4 min-w-[80px]">Products</th>
+                        <th className="py-3 px-3 sm:px-4 min-w-[100px]">Website</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {brandsLoading && manufacturers.length === 0 ? (
+                        Array.from({ length: 3 }).map((_, idx) => (
+                          <tr key={idx} className="animate-pulse">
+                            <td className="py-3.5 px-4">
+                              <div className="h-7 w-20 bg-slate-200 rounded" />
+                            </td>
+                            <td className="py-3.5 px-4">
+                              <div className="h-4 w-36 bg-slate-200 rounded" />
+                            </td>
+                            <td className="py-3.5 px-4">
+                              <div className="h-4 w-28 bg-slate-100 rounded" />
+                            </td>
+                            <td className="py-3.5 px-4">
+                              <div className="h-4 w-8 bg-slate-200 rounded" />
+                            </td>
+                            <td className="py-3.5 px-4">
+                              <div className="h-4 w-20 bg-slate-100 rounded" />
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        manufacturers.map((m) => (
+                          <tr key={m.id} className="hover:bg-slate-50">
+                            <td className="py-3 px-3 sm:px-4">
+                              <ManufacturerLogo logoUrl={m.logoUrl} name={m.name} className="h-7 w-20" />
+                            </td>
+                            <td className="py-3 px-3 sm:px-4 font-bold text-slate-900">{m.name}</td>
+                            <td className="py-3 px-3 sm:px-4 font-mono text-slate-400">{m.slug}</td>
+                            <td className="py-3 px-3 sm:px-4 font-semibold text-slate-700">
+                              {m._count?.products || 0}
+                            </td>
+                            <td className="py-3 px-3 sm:px-4 text-slate-500">
+                              {m.website ? (
+                                <a
+                                  href={m.website}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-teal-600 hover:underline"
+                                >
+                                  Visit Site ↗
+                                </a>
+                              ) : (
+                                "—"
+                              )}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           )}
@@ -2452,11 +2545,11 @@ export default function AdminDashboardPage() {
               {/* Add Ingredient Form */}
               <form
                 onSubmit={handleSaveIngredient}
-                className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs space-y-4"
+                className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-2xs space-y-4"
               >
                 <h3 className="font-bold text-sm text-slate-900">Add Canonical Ingredient</h3>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div className="space-y-1">
                     <label className="font-semibold text-slate-700 block">
                       Canonical Name <span className="text-rose-500">*</span>
@@ -2467,7 +2560,7 @@ export default function AdminDashboardPage() {
                       value={ingForm.name}
                       onChange={(e) => setIngForm({ ...ingForm, name: e.target.value })}
                       placeholder="e.g. Bisoprolol Fumarate"
-                      className="w-full h-9 px-3 rounded-lg border border-slate-300 text-slate-900"
+                      className="w-full h-10 sm:h-9 px-3 rounded-lg border border-slate-300 text-base sm:text-xs text-slate-900"
                     />
                   </div>
 
@@ -2478,7 +2571,7 @@ export default function AdminDashboardPage() {
                       value={ingForm.slug}
                       onChange={(e) => setIngForm({ ...ingForm, slug: e.target.value })}
                       placeholder="e.g. bisoprolol-fumarate"
-                      className="w-full h-9 px-3 rounded-lg border border-slate-300 text-slate-900"
+                      className="w-full h-10 sm:h-9 px-3 rounded-lg border border-slate-300 text-base sm:text-xs text-slate-900"
                     />
                   </div>
 
@@ -2491,7 +2584,7 @@ export default function AdminDashboardPage() {
                       value={ingForm.aliasesText}
                       onChange={(e) => setIngForm({ ...ingForm, aliasesText: e.target.value })}
                       placeholder="e.g. Bisoprolol, Bisoprolol Hemifumarate"
-                      className="w-full h-9 px-3 rounded-lg border border-slate-300 text-slate-900"
+                      className="w-full h-10 sm:h-9 px-3 rounded-lg border border-slate-300 text-base sm:text-xs text-slate-900"
                     />
                   </div>
                 </div>
@@ -2513,7 +2606,7 @@ export default function AdminDashboardPage() {
               </form>
 
               {/* Ingredients Table */}
-              <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-2xs relative">
+              <div className="bg-white rounded-xl sm:rounded-2xl border border-slate-200 overflow-hidden shadow-2xs relative">
                 {ingredientsLoading && ingredients.length > 0 && (
                   <div className="absolute inset-0 bg-white/70 backdrop-blur-2xs flex items-center justify-center z-10 transition-opacity">
                     <div className="px-4 py-2.5 rounded-xl bg-slate-900 text-white flex items-center gap-2.5 shadow-lg border border-slate-800">
@@ -2523,59 +2616,61 @@ export default function AdminDashboardPage() {
                   </div>
                 )}
 
-                <table className="w-full text-left border-collapse text-xs">
-                  <thead>
-                    <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 uppercase text-[10px] font-bold tracking-wider">
-                      <th className="py-3 px-4">Canonical API Name</th>
-                      <th className="py-3 px-4">Search Aliases &amp; Synonyms</th>
-                      <th className="py-3 px-4">Formulations Using API</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {ingredientsLoading && ingredients.length === 0 ? (
-                      Array.from({ length: 5 }).map((_, idx) => (
-                        <tr key={idx} className="animate-pulse">
-                          <td className="py-3.5 px-4">
-                            <div className="h-4 w-40 bg-slate-200 rounded" />
-                          </td>
-                          <td className="py-3.5 px-4">
-                            <div className="flex gap-1.5">
-                              <div className="h-4 w-20 bg-slate-150 rounded" />
-                              <div className="h-4 w-28 bg-slate-100 rounded" />
-                            </div>
-                          </td>
-                          <td className="py-3.5 px-4">
-                            <div className="h-4 w-12 bg-slate-200 rounded" />
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      ingredients.map((ing) => (
-                        <tr key={ing.id} className="hover:bg-slate-50">
-                          <td className="py-3 px-4 font-bold text-slate-900">{ing.name}</td>
-                          <td className="py-3 px-4">
-                            <div className="flex flex-wrap gap-1">
-                              {ing.aliases?.map((a: any) => (
-                                <span
-                                  key={a.id}
-                                  className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 font-mono text-[10px]"
-                                >
-                                  {a.aliasName}
-                                </span>
-                              ))}
-                              {(!ing.aliases || ing.aliases.length === 0) && (
-                                <span className="text-slate-400 italic">No aliases</span>
-                              )}
-                            </div>
-                          </td>
-                          <td className="py-3 px-4 font-semibold text-slate-700">
-                            {ing._count?.productIngredients || 0}
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+                <div className="overflow-x-auto touch-pan-x min-h-[160px]">
+                  <table className="w-full text-left border-collapse text-xs min-w-[560px]">
+                    <thead>
+                      <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 uppercase text-[10px] font-bold tracking-wider">
+                        <th className="py-3 px-3 sm:px-4 min-w-[150px]">Canonical API Name</th>
+                        <th className="py-3 px-3 sm:px-4 min-w-[200px]">Search Aliases &amp; Synonyms</th>
+                        <th className="py-3 px-3 sm:px-4 min-w-[100px]">Formulations Using API</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {ingredientsLoading && ingredients.length === 0 ? (
+                        Array.from({ length: 5 }).map((_, idx) => (
+                          <tr key={idx} className="animate-pulse">
+                            <td className="py-3.5 px-4">
+                              <div className="h-4 w-40 bg-slate-200 rounded" />
+                            </td>
+                            <td className="py-3.5 px-4">
+                              <div className="flex gap-1.5">
+                                <div className="h-4 w-20 bg-slate-150 rounded" />
+                                <div className="h-4 w-28 bg-slate-100 rounded" />
+                              </div>
+                            </td>
+                            <td className="py-3.5 px-4">
+                              <div className="h-4 w-12 bg-slate-200 rounded" />
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        ingredients.map((ing) => (
+                          <tr key={ing.id} className="hover:bg-slate-50">
+                            <td className="py-3 px-3 sm:px-4 font-bold text-slate-900">{ing.name}</td>
+                            <td className="py-3 px-3 sm:px-4">
+                              <div className="flex flex-wrap gap-1">
+                                {ing.aliases?.map((a: any) => (
+                                  <span
+                                    key={a.id}
+                                    className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 font-mono text-[10px]"
+                                  >
+                                    {a.aliasName}
+                                  </span>
+                                ))}
+                                {(!ing.aliases || ing.aliases.length === 0) && (
+                                  <span className="text-slate-400 italic">No aliases</span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="py-3 px-3 sm:px-4 font-semibold text-slate-700">
+                              {ing._count?.productIngredients || 0}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           )}

@@ -168,24 +168,24 @@ export function CapsuleStory({ lakshmi, kothottil }: { lakshmi: Company; kothott
 
         {/* Story text */}
         <Panel show={step === 0} place="intro">
-          <p className="eyebrow !text-ink-soft">Wholesale medicine distribution · Kerala</p>
-          <h1 className="mt-2 font-display text-[2.1rem] sm:text-5xl lg:text-7xl font-semibold leading-[1.04] tracking-tight text-ink">
+          <p className="eyebrow !text-ink-soft text-xs sm:text-sm">Wholesale medicine distribution · Kerala</p>
+          <h1 className="mt-2 font-display text-[1.85rem] sm:text-5xl lg:text-7xl font-semibold leading-[1.08] tracking-tight text-ink">
             Two trusted distributors.
             <br />
             <span className="italic text-ink-soft">One easy enquiry.</span>
           </h1>
-          <p className="mt-3 hidden max-w-md text-base sm:text-lg leading-relaxed text-ink-soft sm:block">
+          <p className="mt-2.5 max-w-md text-sm sm:text-lg leading-relaxed text-ink-soft">
             Browse the catalogues of {lakshmi.name} and {kothottil.name}, pick everything you need, and send it
             in one go.
           </p>
-          {/* <div className="mt-5 sm:mt-6 flex flex-wrap gap-2.5 sm:gap-3">
-            <button onClick={() => jumpTo(1)} className="btn-ink min-h-[44px] text-sm sm:text-base px-5">
-              Open the capsule <ArrowDown className="h-4 w-4 sm:h-5 sm:w-5" />
-            </button>
-            <a href="#choose" className="btn-outline min-h-[44px] text-sm sm:text-base px-5">
-              Skip to catalogues
-            </a>
-          </div> */}
+          <div className="mt-4 sm:mt-6 flex flex-wrap gap-2 sm:gap-3">
+            <Link href={`/${lakshmi.slug}`} className="btn bg-lakshmi text-white hover:bg-lakshmi-deep min-h-[40px] px-3.5 text-xs sm:text-sm font-semibold shadow-xs">
+              {lakshmi.shortName} Catalog
+            </Link>
+            <Link href={`/${kothottil.slug}`} className="btn bg-kothottil text-white hover:bg-kothottil-deep min-h-[40px] px-3.5 text-xs sm:text-sm font-semibold shadow-xs">
+              {kothottil.shortName} Catalog
+            </Link>
+          </div>
         </Panel>
 
         <Panel show={step === 1} place="bottom">
@@ -261,9 +261,9 @@ export function CapsuleStory({ lakshmi, kothottil }: { lakshmi: Company; kothott
         </div>
 
         {step === 0 && (
-          <div className="pointer-events-none absolute bottom-5 left-1/2 z-20 hidden -translate-x-1/2 flex-col items-center gap-1 text-sm font-semibold text-ink-soft sm:flex">
-            Scroll to open
-            <ArrowDown className="h-5 w-5 animate-nudge" />
+          <div className="pointer-events-none absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 flex-col items-center gap-1 text-xs sm:text-sm font-semibold text-ink-soft animate-bounce">
+            <span>Scroll to explore</span>
+            <ArrowDown className="h-3.5 w-3.5 sm:h-5 sm:w-5" />
           </div>
         )}
       </div>

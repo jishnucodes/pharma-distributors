@@ -36,7 +36,7 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-8 sm:py-12 px-4 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <Link
           href="/"
@@ -52,7 +52,7 @@ export default function AdminLoginPage() {
           </div>
         </div>
 
-        <h2 className="text-center text-2xl font-black text-slate-900 tracking-tight">
+        <h2 className="text-center text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
           Distributor Management Portal
         </h2>
         <p className="mt-1 text-center text-xs text-slate-500">
@@ -61,7 +61,7 @@ export default function AdminLoginPage() {
       </div>
 
       <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-6 shadow-sm border border-slate-200 rounded-2xl sm:px-10 space-y-6">
+        <div className="bg-white py-6 px-4 sm:py-8 sm:px-10 shadow-sm border border-slate-200 rounded-2xl space-y-5 sm:space-y-6">
           {error && (
             <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 flex items-center gap-2 text-rose-700 text-xs">
               <AlertCircle className="w-4 h-4 shrink-0" />
@@ -78,7 +78,7 @@ export default function AdminLoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="name@lkpharma.demo"
-                className="w-full h-10 px-3 rounded-lg border border-slate-300 text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-slate-400"
+                className="w-full h-10 px-3 rounded-lg border border-slate-300 text-base sm:text-xs text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-slate-400"
               />
             </div>
 
@@ -90,7 +90,7 @@ export default function AdminLoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••••••"
-                className="w-full h-10 px-3 rounded-lg border border-slate-300 text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-slate-400"
+                className="w-full h-10 px-3 rounded-lg border border-slate-300 text-base sm:text-xs text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-slate-400"
               />
             </div>
 
@@ -116,35 +116,35 @@ export default function AdminLoginPage() {
               Demo Preset Accounts (Click to autofill)
             </span>
 
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               <button
                 type="button"
                 onClick={() => handleQuickLogin("superadmin@lkpharma.demo", "SuperAdmin@2026")}
-                className="w-full text-left p-2.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 transition-colors text-xs flex items-center justify-between"
+                className="w-full text-left p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 transition-colors text-xs flex items-center justify-between gap-2"
               >
-                <div>
+                <div className="min-w-0">
                   <div className="font-bold text-slate-900">1. Super Administrator</div>
-                  <div className="text-[10px] text-slate-500">superadmin@lkpharma.demo (All companies + shared records)</div>
+                  <div className="text-[10px] text-slate-500 truncate">superadmin@lkpharma.demo (All firms)</div>
                 </div>
-                <span className="text-[10px] font-mono text-emerald-700 font-bold">Use &rarr;</span>
+                <span className="text-[10px] font-mono text-emerald-700 font-bold shrink-0">Use &rarr;</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => handleQuickLogin("admin@lakshmipharma.demo", "Lakshmi@2026")}
-                className="w-full text-left p-2.5 rounded-lg border border-emerald-200 bg-emerald-50/50 hover:bg-emerald-100/50 transition-colors text-xs flex items-center justify-between"
+                className="w-full text-left p-3 rounded-xl border border-emerald-200 bg-emerald-50/50 hover:bg-emerald-100/50 transition-colors text-xs flex items-center justify-between gap-2"
               >
-                <div>
+                <div className="min-w-0">
                   <div className="font-bold text-emerald-950">2. Lakshmi Pharma Admin</div>
-                  <div className="text-[10px] text-slate-500">admin@lakshmipharma.demo (Lakshmi catalog &amp; inquiries)</div>
+                  <div className="text-[10px] text-slate-500 truncate">admin@lakshmipharma.demo (Lakshmi)</div>
                 </div>
-                <span className="text-[10px] font-mono text-emerald-700 font-bold">Use &rarr;</span>
+                <span className="text-[10px] font-mono text-emerald-700 font-bold shrink-0">Use &rarr;</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => handleQuickLogin("admin@kothottilpharma.demo", "Kothottil@2026")}
-                className="w-full text-left p-2.5 rounded-lg border border-blue-200 bg-blue-50/50 hover:bg-blue-100/50 transition-colors text-xs flex items-center justify-between"
+                className="w-full text-left p-3 rounded-xl border border-blue-200 bg-blue-50/50 hover:bg-blue-100/50 transition-colors text-xs flex items-center justify-between gap-2"
               >
                 <div>
                   <div className="font-bold text-blue-950">3. The Kothottil Pharma Admin</div>

@@ -7,7 +7,7 @@ import { CapsuleMark } from "@/components/ui/BrandMark";
 export function SiteFooter({ companies }: { companies: Company[] }) {
   return (
     <footer className="bg-ink text-white/80">
-      <div className="container-x py-12 sm:py-16">
+      <div className="container-x pt-12 pb-[calc(5.5rem+env(safe-area-inset-bottom))] lg:py-16">
         <Link href="/" className="inline-flex items-center gap-3 transition-opacity hover:opacity-90">
           <CapsuleMark className="h-10 w-10" />
           <div>

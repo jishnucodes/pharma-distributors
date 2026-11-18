@@ -99,49 +99,49 @@ export default async function ProductPage({ params }: Params) {
               form={product.dosageForm}
               className="pointer-events-none absolute -right-6 -top-2 h-48 w-48 text-accent opacity-[0.08] sm:h-64 sm:w-64"
             />
-            <div className="relative p-5 sm:p-8">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-accent-soft px-3 py-1 text-sm font-semibold text-accent-deep">
-                  <DoseIcon form={product.dosageForm} className="h-4 w-4" /> {product.dosageForm}
+            <div className="relative p-4 sm:p-8">
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-accent-soft px-3 py-1 text-xs sm:text-sm font-semibold text-accent-deep">
+                  <DoseIcon form={product.dosageForm} className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> {product.dosageForm}
                 </span>
                 {product.schedule && (
-                  <span className="rounded-full border border-line px-3 py-1 text-sm font-semibold text-ink-soft">
+                  <span className="rounded-full border border-line px-2.5 sm:px-3 py-0.5 sm:py-1 text-xs sm:text-sm font-semibold text-ink-soft">
                     {product.schedule}
                   </span>
                 )}
                 {product.requiresColdChain && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-sky-50 px-3 py-1 text-sm font-semibold text-sky-800">
-                    <Snowflake className="h-4 w-4" /> Cold chain
+                  <span className="inline-flex items-center gap-1 rounded-full bg-sky-50 px-2.5 sm:px-3 py-0.5 sm:py-1 text-xs sm:text-sm font-semibold text-sky-800">
+                    <Snowflake className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Cold chain
                   </span>
                 )}
               </div>
 
-              <h1 className="mt-4 font-display text-4xl font-semibold leading-[1.05] tracking-tight sm:text-6xl">
+              <h1 className="mt-3 sm:mt-4 font-display text-2xl sm:text-5xl lg:text-6xl font-semibold leading-[1.08] tracking-tight text-ink break-words">
                 {product.name}
               </h1>
-              <div className="mt-3 flex flex-wrap items-center gap-3 text-lg text-ink-soft">
+              <div className="mt-2.5 sm:mt-3 flex flex-wrap items-center gap-2 sm:gap-3 text-sm sm:text-lg text-ink-soft">
                 <ManufacturerLogo name={product.manufacturer.name} logoUrl={product.manufacturer.logoUrl} size="sm" />
-                <span>by {product.manufacturer.name}</span>
+                <span className="truncate">by {product.manufacturer.name}</span>
               </div>
 
-              <div className="mt-6 border-t border-dashed border-line pt-5">
-                <p className="text-sm font-bold uppercase tracking-[0.12em] text-ink-mute">Composition</p>
+              <div className="mt-5 sm:mt-6 border-t border-dashed border-line pt-4 sm:pt-5">
+                <p className="text-xs sm:text-sm font-bold uppercase tracking-[0.12em] text-ink-mute">Composition</p>
                 {product.ingredients.length > 0 ? (
-                  <ul className="mt-3 flex flex-wrap gap-2">
+                  <ul className="mt-2.5 sm:mt-3 flex flex-wrap gap-1.5 sm:gap-2">
                     {product.ingredients.map((ing) => (
-                      <li key={ing.id} className="inline-flex items-baseline gap-2 rounded-2xl bg-paper px-4 py-2.5">
-                        <span className="text-xl font-bold">{ing.name}</span>
-                        <span className="text-xl font-bold text-accent-deep">
+                      <li key={ing.id} className="inline-flex items-baseline gap-1.5 sm:gap-2 rounded-xl sm:rounded-2xl bg-paper px-3 sm:px-4 py-2 sm:py-2.5">
+                        <span className="text-sm sm:text-xl font-bold">{ing.name}</span>
+                        <span className="text-sm sm:text-xl font-bold text-accent-deep">
                           {ing.quantity} {ing.unit}
                         </span>
                       </li>
                     ))}
                   </ul>
                 ) : (
-                  <p className="mt-2 text-xl font-bold">{compositionOf(product) || "—"}</p>
+                  <p className="mt-2 text-base sm:text-xl font-bold">{compositionOf(product) || "—"}</p>
                 )}
                 {product.ingredients.some((i) => i.aliases?.length) && (
-                  <p className="mt-3 text-base text-ink-mute">
+                  <p className="mt-2.5 sm:mt-3 text-xs sm:text-base text-ink-mute">
                     Also known as:{" "}
                     {product.ingredients
                       .filter((i) => i.aliases?.length)
@@ -150,7 +150,7 @@ export default async function ProductPage({ params }: Params) {
                   </p>
                 )}
               </div>
-              <p className="mt-5 text-base text-ink-mute">{product.packaging}</p>
+              <p className="mt-4 sm:mt-5 text-sm sm:text-base text-ink-mute">{product.packaging}</p>
             </div>
           </header>
 
@@ -215,51 +215,57 @@ export default async function ProductPage({ params }: Params) {
             <p className="mt-2 max-w-3xl text-base text-ink-mute">{product.matchingComposition.disclaimer}</p>
           )}
           <div className="mt-5 overflow-hidden rounded-3xl border border-line bg-white shadow-card">
-            <table className="w-full text-left">
-              <thead className="border-b border-line bg-paper/70">
-                <tr className="text-sm font-bold uppercase tracking-[0.08em] text-ink-mute">
-                  <th scope="col" className="py-3.5 pl-5 pr-3">Product</th>
-                  <th scope="col" className="hidden px-3 py-3.5 md:table-cell">Manufacturer</th>
-                  <th scope="col" className="hidden px-3 py-3.5 lg:table-cell">Pack</th>
-                  <th scope="col" className="py-3.5 pl-3 pr-5">
-                    <span className="sr-only">View</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-line">
-                {matches.map((m) => (
-                  <tr key={m.id} className="hover:bg-accent-soft/35">
-                    <td className="py-4 pl-5 pr-3">
-                      <Link href={`/${companySlug}/products/${m.slug}`} className="text-lg font-bold hover:underline">
-                        {m.name}
-                      </Link>
-                      <p className="text-sm text-ink-mute">{m.compositionSummary}</p>
-                      <p className="text-sm text-ink-mute md:hidden">{m.manufacturer.name}</p>
-                    </td>
-                    <td className="hidden px-3 py-4 text-base md:table-cell">{m.manufacturer.name}</td>
-                    <td className="hidden px-3 py-4 text-sm text-ink-soft lg:table-cell">{m.packaging}</td>
-                    <td className="py-4 pl-3 pr-5 text-right">
-                      <Link
-                        href={`/${companySlug}/products/${m.slug}`}
-                        className="inline-grid h-11 w-11 place-items-center rounded-full border-2 border-ink/10 hover:border-ink/30"
-                        aria-label={`View ${m.name}`}
-                      >
-                        <ArrowRight className="h-5 w-5" />
-                      </Link>
-                    </td>
+            <div className="overflow-x-auto touch-pan-x">
+              <table className="w-full text-left">
+                <thead className="border-b border-line bg-paper/70">
+                  <tr className="text-xs sm:text-sm font-bold uppercase tracking-[0.08em] text-ink-mute">
+                    <th scope="col" className="py-3 sm:py-3.5 pl-4 sm:pl-5 pr-3">Product</th>
+                    <th scope="col" className="hidden px-3 py-3 sm:py-3.5 md:table-cell">Manufacturer</th>
+                    <th scope="col" className="hidden px-3 py-3 sm:py-3.5 lg:table-cell">Pack</th>
+                    <th scope="col" className="py-3 sm:py-3.5 pl-3 pr-4 sm:pr-5">
+                      <span className="sr-only">View</span>
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-line">
+                  {matches.map((m) => (
+                    <tr key={m.id} className="hover:bg-accent-soft/35">
+                      <td className="py-3.5 sm:py-4 pl-4 sm:pl-5 pr-3">
+                        <Link href={`/${companySlug}/products/${m.slug}`} className="text-base sm:text-lg font-bold hover:underline">
+                          {m.name}
+                        </Link>
+                        <p className="text-xs sm:text-sm text-ink-mute">{m.compositionSummary}</p>
+                        <p className="text-xs sm:text-sm text-ink-mute md:hidden">{m.manufacturer.name}</p>
+                      </td>
+                      <td className="hidden px-3 py-4 text-base md:table-cell">{m.manufacturer.name}</td>
+                      <td className="hidden px-3 py-4 text-sm text-ink-soft lg:table-cell">{m.packaging}</td>
+                      <td className="py-3.5 sm:py-4 pl-3 pr-4 sm:pr-5 text-right">
+                        <Link
+                          href={`/${companySlug}/products/${m.slug}`}
+                          className="inline-grid h-9 w-9 sm:h-11 sm:w-11 place-items-center rounded-full border-2 border-ink/10 hover:border-ink/30"
+                          aria-label={`View ${m.name}`}
+                        >
+                          <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" />
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </section>
       )}
 
       {/* Phones: keep the main actions in reach while reading */}
-      <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-30 border-t border-line bg-paper/95 px-4 py-3 backdrop-blur lg:hidden">
-        <div className="flex gap-2">
-          <AddToEnquiryButton product={product} className="flex-1" />
-          <a href={telHref(company.phone)} className="btn-outline px-4" aria-label={`Call ${company.name}`}>
+      <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-30 border-t border-line bg-paper/95 px-3 py-2.5 backdrop-blur-md lg:hidden">
+        <div className="flex items-center gap-2 max-w-md mx-auto">
+          <AddToEnquiryButton product={product} size="sm" className="flex-1 !min-h-[44px] !px-3 !text-sm font-bold shadow-xs truncate" />
+          <a
+            href={telHref(company.phone)}
+            className="btn-outline !min-h-[44px] !w-11 !px-0 flex items-center justify-center shrink-0 shadow-xs"
+            aria-label={`Call ${company.name}`}
+          >
             <Phone className="h-5 w-5" />
           </a>
           {company.whatsapp && (
@@ -267,7 +273,7 @@ export default async function ProductPage({ params }: Params) {
               href={whatsappHref(company.whatsapp, whatsappText)}
               target="_blank"
               rel="noopener noreferrer"
-              className="btn-outline px-4"
+              className="btn-outline !min-h-[44px] !w-11 !px-0 flex items-center justify-center shrink-0 shadow-xs"
               aria-label="Ask on WhatsApp"
             >
               <MessageCircle className="h-5 w-5" />

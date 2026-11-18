@@ -118,7 +118,7 @@ export function CatalogView({ company }: { company: Company }) {
       <p className="mt-2 text-lg text-ink-soft">Search by brand name, salt (composition) or strength.</p>
 
       {/* Search */}
-      <div className="sticky top-[68px] z-30 -mx-4 mt-5 bg-paper/95 px-4 py-3 backdrop-blur sm:mx-0 sm:px-0">
+      <div className="sticky top-[100px] sm:top-[106px] z-30 -mx-3.5 sm:-mx-4 mt-4 sm:mt-5 bg-paper/95 px-3.5 sm:px-4 py-2.5 sm:py-3 backdrop-blur-md border-b border-line/60 sm:border-0 sm:mx-0 sm:px-0">
         <form
           role="search"
           onSubmit={(e) => {
@@ -127,8 +127,8 @@ export function CatalogView({ company }: { company: Company }) {
           }}
           className="flex gap-2"
         >
-          <div className="flex min-w-0 flex-1 items-center gap-2 rounded-full border-2 border-line bg-white pl-4 pr-1.5 shadow-card focus-within:border-accent">
-            <Search className="h-6 w-6 shrink-0 text-ink-mute" aria-hidden="true" />
+          <div className="flex min-w-0 flex-1 items-center gap-2 rounded-full border-2 border-line bg-white pl-3.5 sm:pl-4 pr-1.5 shadow-card focus-within:border-accent">
+            <Search className="h-5 w-5 sm:h-6 sm:w-6 shrink-0 text-ink-mute" aria-hidden="true" />
             <label htmlFor="catalog-q" className="sr-only">
               Search products
             </label>
@@ -137,13 +137,13 @@ export function CatalogView({ company }: { company: Company }) {
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="e.g. BISY 2.5, DAPARIN-10, or Paracetamol"
-              className="h-[52px] min-w-0 flex-1 bg-transparent text-lg outline-none placeholder:text-ink-mute"
+              placeholder="Search brand, salt, formulation..."
+              className="h-[46px] sm:h-[52px] min-w-0 flex-1 bg-transparent text-base sm:text-lg outline-none placeholder:text-ink-mute"
               autoComplete="off"
             />
             {loading && (
               <span className="flex items-center justify-center px-1" title="Searching formulations...">
-                <span className="h-5 w-5 animate-spin rounded-full border-2 border-accent/20 border-t-accent" />
+                <span className="h-4.5 w-4.5 sm:h-5 sm:w-5 animate-spin rounded-full border-2 border-accent/20 border-t-accent" />
               </span>
             )}
             {query && (
@@ -153,17 +153,17 @@ export function CatalogView({ company }: { company: Company }) {
                   setQuery("");
                   update({ q: undefined });
                 }}
-                className="grid h-10 w-10 place-items-center rounded-full text-ink-mute hover:bg-paper"
+                className="grid h-9 w-9 sm:h-10 sm:w-10 place-items-center rounded-full text-ink-mute hover:bg-paper"
                 aria-label="Clear search"
               >
-                <X className="h-5 w-5" />
+                <X className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
               </button>
             )}
           </div>
           <button
             type="button"
             onClick={() => setSheetOpen(true)}
-            className="btn-outline px-4 lg:hidden"
+            className="btn-outline !min-h-[46px] sm:!min-h-[52px] !px-3 sm:!px-4 lg:hidden shrink-0"
             aria-label="Filters and sorting"
           >
             <SlidersHorizontal className="h-5 w-5" />
@@ -173,7 +173,7 @@ export function CatalogView({ company }: { company: Company }) {
 
         {/* Quick dosage-form chips on phones */}
         {meta && meta.dosageForms.length > 1 && (
-          <div className="no-scrollbar -mx-4 mt-3 flex gap-2 overflow-x-auto px-4 lg:hidden">
+          <div className="no-scrollbar -mx-3.5 sm:-mx-4 mt-2.5 sm:mt-3 flex gap-1.5 sm:gap-2 overflow-x-auto px-3.5 sm:px-4 touch-pan-x lg:hidden">
             {meta.dosageForms.map((d) => {
               const on = form === d.name;
               return (
@@ -181,8 +181,8 @@ export function CatalogView({ company }: { company: Company }) {
                   key={d.name}
                   onClick={() => update({ dosageForm: on ? undefined : d.name })}
                   aria-pressed={on}
-                  className={`min-h-[44px] whitespace-nowrap rounded-full border-2 px-4 text-base font-semibold ${
-                    on ? "border-accent bg-accent text-white" : "border-line bg-white"
+                  className={`min-h-[36px] sm:min-h-[44px] whitespace-nowrap rounded-full border-2 px-3 sm:px-4 text-xs sm:text-base font-semibold transition-colors ${
+                    on ? "border-accent bg-accent text-white" : "border-line bg-white text-ink"
                   }`}
                 >
                   {d.name}

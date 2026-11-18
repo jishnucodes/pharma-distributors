@@ -24,8 +24,8 @@ export default async function ContactPage({ params }: { params: { companySlug: s
 
   return (
     <div className="container-x pb-16 pt-6 sm:pt-10">
-      <h1 className="font-display text-4xl font-semibold tracking-tight sm:text-5xl">Contact {company.shortName}</h1>
-      <p className="mt-2 max-w-2xl text-lg text-ink-soft">
+      <h1 className="font-display text-2xl sm:text-4xl lg:text-5xl font-semibold tracking-tight">Contact {company.shortName}</h1>
+      <p className="mt-2 max-w-2xl text-base sm:text-lg text-ink-soft">
         Call, WhatsApp or email our trade desk. For a list of products, the enquiry list is quickest.
       </p>
 
@@ -36,14 +36,14 @@ export default async function ContactPage({ params }: { params: { companySlug: s
               <a
                 href={c.href}
                 {...(c.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-                className="flex items-center gap-4 rounded-3xl border border-line bg-white p-5 shadow-card hover:border-accent"
+                className="flex items-center gap-3 sm:gap-4 rounded-3xl border border-line bg-white p-4 sm:p-5 shadow-card hover:border-accent"
               >
-                <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-accent text-white">
-                  <c.icon className="h-7 w-7" />
+                <span className="grid h-12 w-12 sm:h-14 sm:w-14 shrink-0 place-items-center rounded-2xl bg-accent text-white">
+                  <c.icon className="h-6 w-6 sm:h-7 sm:w-7" />
                 </span>
                 <span className="min-w-0">
-                  <span className="block text-base font-semibold text-ink-mute">{c.label}</span>
-                  <span className="block break-words text-xl font-bold">{c.value}</span>
+                  <span className="block text-xs sm:text-base font-semibold text-ink-mute">{c.label}</span>
+                  <span className="block truncate text-base sm:text-xl font-bold">{c.value}</span>
                 </span>
               </a>
             </li>
@@ -53,25 +53,25 @@ export default async function ContactPage({ params }: { params: { companySlug: s
           </li>
         </ul>
 
-        <div className="space-y-4 rounded-4xl bg-accent-deep p-6 text-white sm:p-8">
-          <h2 className="font-display text-2xl font-semibold">Visit us</h2>
-          <p className="flex gap-3 text-lg">
+        <div className="space-y-4 rounded-3xl sm:rounded-4xl bg-accent-deep p-5 text-white sm:p-8">
+          <h2 className="font-display text-xl sm:text-2xl font-semibold">Visit us</h2>
+          <p className="flex gap-3 text-base sm:text-lg">
             <MapPin className="mt-1 h-5 w-5 shrink-0" /> {company.address}
           </p>
-          <p className="flex gap-3 text-lg">
+          <p className="flex gap-3 text-base sm:text-lg">
             <Clock className="mt-1 h-5 w-5 shrink-0" /> {company.businessHours}
           </p>
-          <p className="text-base text-white/75">Serving: {company.serviceAreas}</p>
+          <p className="text-sm sm:text-base text-white/75">Serving: {company.serviceAreas}</p>
           <a
             href={mapsHref}
             target="_blank"
             rel="noopener noreferrer"
-            className="btn w-full bg-white text-accent-deep hover:bg-accent-soft"
+            className="btn w-full bg-white text-accent-deep hover:bg-accent-soft !min-h-[44px]"
           >
             <Navigation className="h-5 w-5" /> Get directions
           </a>
           {(company.drugLicenseNo || company.gstin) && (
-            <div className="border-t border-white/20 pt-4 text-base text-white/75">
+            <div className="border-t border-white/20 pt-4 text-xs sm:text-base text-white/75 space-y-1">
               {company.drugLicenseNo && <p>Drug licence: {company.drugLicenseNo}</p>}
               {company.gstin && <p>GSTIN: {company.gstin}</p>}
             </div>

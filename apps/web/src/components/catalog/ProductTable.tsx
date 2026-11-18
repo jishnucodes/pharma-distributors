@@ -16,23 +16,31 @@ export function ProductTable({ products, companySlug }: { products: Product[]; c
     <div className="overflow-hidden rounded-3xl border border-line bg-white shadow-card">
       {/* Phones */}
       <ul className="divide-y divide-line md:hidden">
-        {products.map((p) => (
-          <li key={p.id} className="flex items-center gap-3 p-4">
-            <Link href={href(p)} className="flex min-w-0 flex-1 gap-3">
-              <span className="mt-0.5 grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-accent-soft text-accent">
-                <DoseIcon form={p.dosageForm} className="h-7 w-7" />
-              </span>
-              <span className="min-w-0">
-                <span className="block text-lg font-bold leading-snug">{p.name}</span>
-                {compositionOf(p) && <span className="block text-base leading-snug text-ink">{compositionOf(p)}</span>}
-                <span className="mt-0.5 block text-sm text-ink-mute">
-                  {p.manufacturer.name} · {p.packaging}
+        {products.map((p) => {
+          const reason = p.matchReasons?.[0];
+          return (
+            <li key={p.id} className="flex items-center gap-2.5 p-3 sm:p-4">
+              <Link href={href(p)} className="flex min-w-0 flex-1 gap-2.5 sm:gap-3">
+                <span className="mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-accent-soft text-accent">
+                  <DoseIcon form={p.dosageForm} className="h-6 w-6" />
                 </span>
-              </span>
-            </Link>
-            <AddToEnquiryButton product={p} size="icon" />
-          </li>
-        ))}
+                <span className="min-w-0 flex-1">
+                  <span className="block text-base font-bold leading-snug truncate">{p.name}</span>
+                  {compositionOf(p) && (
+                    <span className="block text-xs sm:text-sm leading-snug text-ink line-clamp-1">{compositionOf(p)}</span>
+                  )}
+                  {reason && reason.type !== "brand_name" && (
+                    <span className="mt-0.5 inline-block text-[11px] font-semibold text-accent-deep">✓ {reason.label}</span>
+                  )}
+                  <span className="mt-0.5 block text-xs text-ink-mute truncate">
+                    {p.manufacturer.name} · {p.packaging}
+                  </span>
+                </span>
+              </Link>
+              <AddToEnquiryButton product={p} size="icon" />
+            </li>
+          );
+        })}
       </ul>
 
       {/* Tablets and desktop */}

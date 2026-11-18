@@ -30,47 +30,47 @@ export default async function CompanyOverviewPage({ params }: { params: { compan
           className="absolute inset-0 -z-10"
           style={{ background: `radial-gradient(ellipse at 78% 40%, ${color.soft}, transparent 62%)` }}
         />
-        <div className="container-x grid items-center gap-4 pb-12 pt-6 md:grid-cols-[1.1fr_1fr] md:gap-10 md:pb-20 md:pt-14">
+        <div className="container-x grid items-center gap-4 pb-8 pt-4 sm:pb-12 sm:pt-6 md:grid-cols-[1.1fr_1fr] md:gap-10 md:pb-20 md:pt-14">
           <DoseViewer
             accent={color.main}
             hint={false}
-            className="order-first -mx-4 h-[240px] sm:h-[320px] md:order-last md:mx-0 md:h-[460px]"
+            className="order-first -mx-4 h-[200px] sm:h-[320px] md:order-last md:mx-0 md:h-[460px]"
           />
           <div className="min-w-0">
-            <p className="eyebrow flex items-center gap-2">
-              <ShieldCheck className="h-5 w-5" aria-hidden="true" /> Authorised distributor
+            <p className="eyebrow flex items-center gap-2 text-xs sm:text-sm">
+              <ShieldCheck className="h-4 w-4 sm:h-5 sm:w-5" aria-hidden="true" /> Authorised distributor
             </p>
-            <h1 className="mt-3 font-display text-4xl font-semibold leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl">
+            <h1 className="mt-2 sm:mt-3 font-display text-2xl sm:text-5xl lg:text-6xl font-semibold leading-[1.08] tracking-tight">
               {company.name}
             </h1>
-            {company.tagline && <p className="mt-3 text-xl leading-snug text-ink-soft">{company.tagline}</p>}
+            {company.tagline && <p className="mt-2 sm:mt-3 text-base sm:text-xl leading-snug text-ink-soft">{company.tagline}</p>}
 
-            <form action={`/${slug}/products`} role="search" className="mt-7">
-              <label htmlFor="hero-q" className="text-base font-semibold">
+            <form action={`/${slug}/products`} role="search" className="mt-5 sm:mt-7">
+              <label htmlFor="hero-q" className="text-sm sm:text-base font-semibold block">
                 Find a medicine
               </label>
-              <div className="mt-2 flex gap-2 rounded-full border-2 border-line bg-white p-1.5 shadow-card focus-within:border-accent">
-                <Search className="ml-3 h-6 w-6 shrink-0 self-center text-ink-mute" aria-hidden="true" />
+              <div className="mt-2 flex gap-1.5 sm:gap-2 rounded-full border-2 border-line bg-white p-1 sm:p-1.5 shadow-card focus-within:border-accent">
+                <Search className="ml-2.5 sm:ml-3 h-5 w-5 sm:h-6 sm:w-6 shrink-0 self-center text-ink-mute" aria-hidden="true" />
                 <input
                   id="hero-q"
                   name="q"
                   type="search"
-                  placeholder="Brand or salt, e.g. Bisoprolol or DAPARIN"
-                  className="min-w-0 flex-1 bg-transparent text-lg outline-none placeholder:text-ink-mute"
+                  placeholder="Brand or salt, e.g. Bisoprolol"
+                  className="min-w-0 flex-1 bg-transparent text-base sm:text-lg outline-none placeholder:text-ink-mute"
                 />
-                <button type="submit" className="btn-primary px-5">
+                <button type="submit" className="btn-primary !min-h-[40px] sm:!min-h-[48px] !px-4 sm:!px-5 !text-xs sm:!text-base shrink-0 font-bold">
                   Search
                 </button>
               </div>
             </form>
 
-            <div className="mt-5 flex flex-wrap gap-3">
-              <a href={telHref(company.phone)} className="btn-outline">
-                <Phone className="h-5 w-5" /> Call now
+            <div className="mt-4 sm:mt-5 flex flex-wrap gap-2.5 sm:gap-3">
+              <a href={telHref(company.phone)} className="btn-outline !min-h-[42px] sm:!min-h-[48px] !px-4 !text-xs sm:!text-base font-semibold">
+                <Phone className="h-4 w-4 sm:h-5 sm:w-5" /> Call now
               </a>
               {company.whatsapp && (
-                <a href={whatsappHref(company.whatsapp)} target="_blank" rel="noopener noreferrer" className="btn-outline">
-                  <MessageCircle className="h-5 w-5" /> WhatsApp
+                <a href={whatsappHref(company.whatsapp)} target="_blank" rel="noopener noreferrer" className="btn-outline !min-h-[42px] sm:!min-h-[48px] !px-4 !text-xs sm:!text-base font-semibold">
+                  <MessageCircle className="h-4 w-4 sm:h-5 sm:w-5" /> WhatsApp
                 </a>
               )}
             </div>
@@ -80,16 +80,19 @@ export default async function CompanyOverviewPage({ params }: { params: { compan
 
       {/* Quick facts */}
       <section className="border-y border-line bg-white">
-        <dl className="container-x grid grid-cols-2 gap-px py-2 md:grid-cols-4">
+        <dl className="container-x grid grid-cols-2 gap-2 sm:gap-px py-2 sm:grid-cols-4">
           {[
-            { label: "Products", value: totalProducts ?? "—" },
-            { label: "Manufacturers", value: totalMakers ?? "—" },
-            { label: "Open", value: company.businessHours, small: true, icon: Clock },
-            { label: "We serve", value: company.serviceAreas, small: true, icon: MapPin },
+            { label: "Products", value: totalProducts ?? "—", className: "col-span-1" },
+            { label: "Manufacturers", value: totalMakers ?? "—", className: "col-span-1" },
+            { label: "Open Hours", value: company.businessHours, small: true, icon: Clock, className: "col-span-2 sm:col-span-1" },
+            { label: "We Serve", value: company.serviceAreas, small: true, icon: MapPin, className: "col-span-2 sm:col-span-1" },
           ].map((f) => (
-            <div key={f.label} className="px-2 py-4 sm:px-4">
-              <dt className="text-sm font-semibold text-ink-mute">{f.label}</dt>
-              <dd className={f.small ? "mt-1 text-base font-semibold leading-snug" : "font-display text-4xl font-semibold text-accent-deep"}>
+            <div key={f.label} className={`px-2 py-3 sm:px-4 sm:py-4 ${f.className}`}>
+              <dt className="text-xs sm:text-sm font-semibold text-ink-mute flex items-center gap-1.5">
+                {f.icon && <f.icon className="h-3.5 w-3.5" />}
+                <span>{f.label}</span>
+              </dt>
+              <dd className={f.small ? "mt-1 text-sm sm:text-base font-semibold leading-snug text-ink" : "font-display text-2xl sm:text-4xl font-semibold text-accent-deep"}>
                 {f.value}
               </dd>
             </div>
