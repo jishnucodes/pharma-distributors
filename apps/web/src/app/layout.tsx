@@ -20,12 +20,12 @@ export const metadata: Metadata = {
     template: "%s | L & K Pharma Network",
   },
   description:
-    "Browse the wholesale catalogues of Lakshmi Pharma and The Kothittil Pharmaceutical Distributor. Search by brand or composition and send one enquiry for many products at once.",
+    "Browse the wholesale catalogues of Lakshmi Pharma and The Kothottil Pharmaceutical Distributor. Search by brand or composition and send one enquiry for many products at once.",
   keywords: [
     "pharmaceutical distributor",
     "wholesale pharma Kerala",
     "Lakshmi Pharma",
-    "The Kothittil Pharmaceutical Distributor",
+    "The Kothottil Pharmaceutical Distributor",
     "medicine enquiry",
     "B2B pharma catalogue",
     "active pharmaceutical ingredients",

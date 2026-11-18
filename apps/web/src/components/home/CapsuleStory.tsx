@@ -10,7 +10,7 @@ import type { CapsuleHeroScene } from "@/components/three/CapsuleHeroScene";
 import { Brand3DMotionIntro } from "@/components/three/Brand3DMotionIntro";
 
 const STAGE_ANCHORS = [0.02, 0.25, 0.50, 0.75, 0.98];
-const STEP_LABELS = ["Start", "Open", "Lakshmi", "Kothittil", "Together"];
+const STEP_LABELS = ["Start", "Open", "Lakshmi", "Kothottil", "Together"];
 
 /** Step boundaries for text panels */
 function stepFromProgress(p: number) {
@@ -21,7 +21,7 @@ function stepFromProgress(p: number) {
   return 4;
 }
 
-export function CapsuleStory({ lakshmi, kothittil }: { lakshmi: Company; kothittil: Company }) {
+export function CapsuleStory({ lakshmi, kothottil }: { lakshmi: Company; kothottil: Company }) {
   const trackRef = useRef<HTMLElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sceneRef = useRef<CapsuleHeroScene | null>(null);
@@ -87,9 +87,9 @@ export function CapsuleStory({ lakshmi, kothittil }: { lakshmi: Company; kothitt
       try {
         sceneRef.current = new CapsuleHeroScene(canvas, {
           capColor: companyColor(lakshmi.slug).main,
-          bodyColor: companyColor(kothittil.slug).main,
+          bodyColor: companyColor(kothottil.slug).main,
           capLabel: "LAKSHMI",
-          bodyLabel: "KOTHITTIL",
+          bodyLabel: "KOTHOTTIL",
           reducedMotion: window.matchMedia("(prefers-reduced-motion: reduce)").matches,
         });
       } catch {
@@ -116,7 +116,7 @@ export function CapsuleStory({ lakshmi, kothittil }: { lakshmi: Company; kothitt
       sceneRef.current?.dispose();
       sceneRef.current = null;
     };
-  }, [lakshmi.slug, kothittil.slug]);
+  }, [lakshmi.slug, kothottil.slug]);
 
   const jumpTo = useCallback(
     (i: number) => {
@@ -175,17 +175,17 @@ export function CapsuleStory({ lakshmi, kothittil }: { lakshmi: Company; kothitt
             <span className="italic text-ink-soft">One easy enquiry.</span>
           </h1>
           <p className="mt-3 hidden max-w-md text-base sm:text-lg leading-relaxed text-ink-soft sm:block">
-            Browse the catalogues of {lakshmi.name} and {kothittil.name}, pick everything you need, and send it
+            Browse the catalogues of {lakshmi.name} and {kothottil.name}, pick everything you need, and send it
             in one go.
           </p>
-          <div className="mt-5 sm:mt-6 flex flex-wrap gap-2.5 sm:gap-3">
+          {/* <div className="mt-5 sm:mt-6 flex flex-wrap gap-2.5 sm:gap-3">
             <button onClick={() => jumpTo(1)} className="btn-ink min-h-[44px] text-sm sm:text-base px-5">
               Open the capsule <ArrowDown className="h-4 w-4 sm:h-5 sm:w-5" />
             </button>
             <a href="#choose" className="btn-outline min-h-[44px] text-sm sm:text-base px-5">
               Skip to catalogues
             </a>
-          </div>
+          </div> */}
         </Panel>
 
         <Panel show={step === 1} place="bottom">
@@ -202,7 +202,7 @@ export function CapsuleStory({ lakshmi, kothittil }: { lakshmi: Company; kothitt
           <CompanyCard company={lakshmi} />
         </Panel>
         <Panel show={step === 3} place="side">
-          <CompanyCard company={kothittil} />
+          <CompanyCard company={kothottil} />
         </Panel>
 
         <Panel show={step === 4} place="bottom">
@@ -216,8 +216,8 @@ export function CapsuleStory({ lakshmi, kothittil }: { lakshmi: Company; kothitt
             <Link href={`/${lakshmi.slug}`} className="btn bg-lakshmi text-white hover:bg-lakshmi-deep min-h-[44px] px-5 text-sm sm:text-base">
               {lakshmi.shortName}
             </Link>
-            <Link href={`/${kothittil.slug}`} className="btn bg-kothittil text-white hover:bg-kothittil-deep min-h-[44px] px-5 text-sm sm:text-base">
-              {kothittil.shortName}
+            <Link href={`/${kothottil.slug}`} className="btn bg-kothottil text-white hover:bg-kothottil-deep min-h-[44px] px-5 text-sm sm:text-base">
+              {kothottil.shortName}
             </Link>
           </div>
         </Panel>
@@ -379,7 +379,7 @@ function CssCapsule({ failed, step }: { failed: boolean; step: number }) {
           style={{ transform: open ? "translateX(-24px)" : undefined }}
         />
         <span
-          className="block h-20 w-32 sm:h-24 sm:w-36 rounded-r-full bg-kothittil shadow-lift transition-transform duration-700"
+          className="block h-20 w-32 sm:h-24 sm:w-36 rounded-r-full bg-kothottil shadow-lift transition-transform duration-700"
           style={{ transform: open ? "translateX(24px)" : undefined }}
         />
       </div>

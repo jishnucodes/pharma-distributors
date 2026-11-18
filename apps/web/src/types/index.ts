@@ -1,4 +1,4 @@
-export type CompanySlug = "lakshmi-pharma" | "kothittil-pharma";
+export type CompanySlug = "lakshmi-pharma" | "kothottil-pharma";
 
 export interface Company {
   id: string;

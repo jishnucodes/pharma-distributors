@@ -103,8 +103,8 @@ export function ExperiencePreloader({ progress, statusText, isReady, onSkip }: P
               <span className="absolute -inset-1 animate-ping rounded-full bg-white/30" />
             </div>
 
-            {/* Right cap - Kothittil blue */}
-            <div className="relative h-14 w-20 overflow-hidden rounded-r-full border border-kothittil/40 bg-gradient-to-r from-kothittil/80 to-kothittil shadow-[0_0_24px_rgba(36,80,200,0.35)] animate-pulse">
+            {/* Right cap - Kothottil blue */}
+            <div className="relative h-14 w-20 overflow-hidden rounded-r-full border border-kothottil/40 bg-gradient-to-r from-kothottil/80 to-kothottil shadow-[0_0_24px_rgba(36,80,200,0.35)] animate-pulse">
               <span className="absolute inset-y-0 left-1 w-2 border-l border-white/20" />
             </div>
           </div>
@@ -124,14 +124,14 @@ export function ExperiencePreloader({ progress, statusText, isReady, onSkip }: P
         {/* Progress bar line */}
         <div className="relative mt-5 h-1.5 w-full overflow-hidden rounded-full bg-line/80">
           <div
-            className="h-full rounded-full bg-gradient-to-r from-lakshmi via-teal-400 to-kothittil shadow-sm transition-all duration-150 ease-out"
+            className="h-full rounded-full bg-gradient-to-r from-lakshmi via-teal-400 to-kothottil shadow-sm transition-all duration-150 ease-out"
             style={{ width: `${pct}%` }}
           />
         </div>
 
         {/* Network descriptor */}
         <p className="mt-4 text-xs text-ink-mute">
-          Lakshmi Pharma · The Kothittil Distributor
+          Lakshmi Pharma · The Kothottil Distributor
         </p>
 
         {/* Instant Skip CTA */}

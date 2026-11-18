@@ -26,29 +26,29 @@ async function runAcceptanceChecks() {
 
   // Fetch Companies
   const lakshmi = await prisma.company.findUnique({ where: { slug: "lakshmi-pharma" } });
-  const kothittil = await prisma.company.findUnique({ where: { slug: "kothittil-pharma" } });
+  const kothottil = await prisma.company.findUnique({ where: { slug: "kothottil-pharma" } });
 
-  assert(Boolean(lakshmi && kothittil), "1. Companies exist in database", `Lakshmi: ${lakshmi?.id}, Kothittil: ${kothittil?.id}`);
-  if (!lakshmi || !kothittil) return;
+  assert(Boolean(lakshmi && kothottil), "1. Companies exist in database", `Lakshmi: ${lakshmi?.id}, Kothottil: ${kothottil?.id}`);
+  if (!lakshmi || !kothottil) return;
 
   // Check 1 & 2: Isolation & Non-Leakage
   console.log("\n--- Checking Catalog Scoping & Isolation ---");
   const lakshmiAll = await searchCompanyProducts(lakshmi.id, {});
-  const kothittilAll = await searchCompanyProducts(kothittil.id, {});
+  const kothottilAll = await searchCompanyProducts(kothottil.id, {});
 
   const lakshmiNames = lakshmiAll.products.map((p) => p.name);
-  const kothittilNames = kothittilAll.products.map((p) => p.name);
+  const kothottilNames = kothottilAll.products.map((p) => p.name);
 
   assert(
-    lakshmiNames.includes("Calpol 650") && !kothittilNames.includes("Calpol 650"),
-    "2. Calpol 650 exists in Lakshmi Pharma but NEVER leaks into Kothittil Pharma",
-    `Lakshmi products: [${lakshmiNames.join(", ")}], Kothittil products: [${kothittilNames.join(", ")}]`
+    lakshmiNames.includes("Calpol 650") && !kothottilNames.includes("Calpol 650"),
+    "2. Calpol 650 exists in Lakshmi Pharma but NEVER leaks into Kothottil Pharma",
+    `Lakshmi products: [${lakshmiNames.join(", ")}], Kothottil products: [${kothottilNames.join(", ")}]`
   );
 
   assert(
-    kothittilNames.includes("Glycomet 500 SR") && !lakshmiNames.includes("Glycomet 500 SR"),
-    "2b. Glycomet 500 SR exists exclusively in Kothittil Pharma catalog",
-    `Kothittil has Glycomet 500 SR: ${kothittilNames.includes("Glycomet 500 SR")}, Lakshmi has it: ${lakshmiNames.includes("Glycomet 500 SR")}`
+    kothottilNames.includes("Glycomet 500 SR") && !lakshmiNames.includes("Glycomet 500 SR"),
+    "2b. Glycomet 500 SR exists exclusively in Kothottil Pharma catalog",
+    `Kothottil has Glycomet 500 SR: ${kothottilNames.includes("Glycomet 500 SR")}, Lakshmi has it: ${lakshmiNames.includes("Glycomet 500 SR")}`
   );
 
   // Check 3: Composition-based search fixture (Paracetamol, Acetaminophen, Dolo)

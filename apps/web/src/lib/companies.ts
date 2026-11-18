@@ -1,6 +1,6 @@
 import { Company, Product } from "@/types";
 
-export const COMPANY_SLUGS = ["lakshmi-pharma", "kothittil-pharma"] as const;
+export const COMPANY_SLUGS = ["lakshmi-pharma", "kothottil-pharma"] as const;
 
 export function isCompanySlug(slug: string): boolean {
   return (COMPANY_SLUGS as readonly string[]).includes(slug);
@@ -8,11 +8,11 @@ export function isCompanySlug(slug: string): boolean {
 
 /** Colours used by the WebGL scenes (CSS uses the matching variables in globals.css).
  * Lakshmi Pharma: Vibrant Medical Crimson Red
- * Kothittil Pharma: Royal Clinical Blue
+ * Kothottil Pharma: Royal Clinical Blue
  */
 export const COMPANY_COLORS: Record<string, { main: string; deep: string; soft: string }> = {
   "lakshmi-pharma": { main: "#E11D48", deep: "#9F1239", soft: "#FFE4E6" },
-  "kothittil-pharma": { main: "#2450C8", deep: "#173A9A", soft: "#E1E8FB" },
+  "kothottil-pharma": { main: "#2450C8", deep: "#173A9A", soft: "#E1E8FB" },
 };
 
 export function companyColor(slug: string) {
@@ -25,8 +25,8 @@ export function fallbackCompany(slug: string): Company {
   return {
     id: slug,
     slug,
-    name: isLakshmi ? "Lakshmi Pharma" : "The Kothittil Pharmaceutical Distributor",
-    shortName: isLakshmi ? "Lakshmi" : "Kothittil",
+    name: isLakshmi ? "Lakshmi Pharma" : "The Kothottil Pharmaceutical Distributor",
+    shortName: isLakshmi ? "Lakshmi" : "Kothottil",
     accentColor: isLakshmi ? "red" : "blue",
     tagline: isLakshmi
       ? "Authorized Ethical & Generics Pharmaceutical Distribution"
@@ -37,7 +37,7 @@ export function fallbackCompany(slug: string): Company {
       ? "Market Road, Kochi, Kerala - 682035"
       : "NH 66 Bypass, Thiruvananthapuram, Kerala - 695024",
     phone: isLakshmi ? "+91 484 235 6789" : "+91 471 245 8890",
-    email: isLakshmi ? "orders@lakshmipharma.demo" : "supply@kothittilpharma.demo",
+    email: isLakshmi ? "orders@lakshmipharma.demo" : "supply@kothottilpharma.demo",
     whatsapp: isLakshmi ? "+91 94471 23456" : "+91 98460 78901",
     businessHours: "Mon - Sat: 8:30 AM - 7:30 PM",
     drugLicenseNo: null,
