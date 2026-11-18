@@ -12,6 +12,8 @@ import { DoseIcon } from "@/components/ui/DoseIcon";
 
 type Params = { params: { companySlug: string; productSlug: string } };
 
+export const revalidate = 300;
+
 async function load(companySlug: string, productSlug: string) {
   try {
     return await fetchProduct(companySlug, productSlug);
@@ -50,26 +52,31 @@ export default async function ProductPage({ params }: Params) {
     product.storageConditions && { label: "Storage", value: product.storageConditions },
     product.schedule && { label: "Schedule", value: product.schedule },
     product.itemCode && { label: "Item code", value: <span className="font-mono">{product.itemCode}</span> },
-    product.categories.length > 0 && {
-      label: "Category",
-      value: (
-        <span className="flex flex-wrap gap-2">
-          {product.categories.map((c) => (
-            <Link
-              key={c.id}
-              href={`/${companySlug}/products?category=${c.slug}`}
-              className="rounded-full bg-accent-soft px-3 py-1 text-sm font-semibold text-accent-deep hover:underline"
-            >
-              {c.name}
-            </Link>
-          ))}
-        </span>
-      ),
-    },
+    product.distributorNotes && { label: "Pricing & Trade", value: product.distributorNotes },
   ].filter(Boolean) as Array<{ label: string; value: React.ReactNode }>;
+
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Drug",
+    name: product.name,
+    description: product.description || `${product.name} pharmaceutical formulation distributed by ${company.name}`,
+    dosageForm: product.dosageForm,
+    proprietaryName: product.name,
+    nonProprietaryName: compositionOf(product),
+    manufacturer: {
+      "@type": "Organization",
+      name: product.manufacturer.name,
+      url: product.manufacturer.website || undefined,
+    },
+    activeIngredient: product.ingredients.map((ing) => `${ing.name} ${ing.quantity} ${ing.unit}`),
+  };
 
   return (
     <div className="container-wide pb-16 pt-4 sm:pt-6">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-1 text-base text-ink-mute">
         <Link href={`/${companySlug}/products`} className="inline-flex min-h-[44px] items-center font-semibold hover:text-ink">
           Products

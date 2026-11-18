@@ -129,6 +129,24 @@ body {
   scrollbar-width: none;
 }
 
+/* NextTopLoader & NProgress customization */
+#nprogress .bar {
+  background: rgb(var(--accent, 37 99 235)) !important;
+  height: 3px !important;
+}
+
+#nprogress .peg {
+  box-shadow: 0 0 12px rgb(var(--accent, 37 99 235)), 0 0 6px rgb(var(--accent, 37 99 235)) !important;
+}
+
+#nprogress .spinner-icon {
+  border-top-color: rgb(var(--accent, 37 99 235)) !important;
+  border-left-color: rgb(var(--accent, 37 99 235)) !important;
+  width: 20px !important;
+  height: 20px !important;
+  border-width: 2.5px !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;

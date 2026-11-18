@@ -50,6 +50,14 @@ export async function findProductsWithMatchingComposition(
       productId: { not: currentProductId },
       product: {
         dosageForm: currentProduct.dosageForm,
+        manufacturer: {
+          companyManufacturers: {
+            some: {
+              companyId,
+              isAuthorized: true,
+            },
+          },
+        },
       },
     },
     include: {

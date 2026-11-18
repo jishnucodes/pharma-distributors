@@ -46,7 +46,7 @@ export default async function HomePage() {
               Choose your distributor
             </h2>
             <p className="mt-3 max-w-2xl text-lg text-ink-soft">
-              Search by brand name or by salt (composition) — for example “Dolo 650” or “Paracetamol”.
+              Search by brand name or by salt (composition) — for example “BISY 2.5” or “Bisoprolol”.
             </p>
             <div className="mt-10 grid gap-6 lg:grid-cols-2">
               {companies.map((c) => (

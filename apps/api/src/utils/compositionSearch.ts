@@ -1,4 +1,5 @@
 import { prisma } from "@lk/database";
+import { memoryCache } from "./cache";
 
 export interface SearchFilters {
   query?: string;
@@ -53,6 +54,93 @@ export interface ProductSearchResult {
   matchReasons: MatchReason[];
 }
 
+export interface FilterMetaResult {
+  manufacturers: Array<{ name: string; slug: string; count: number }>;
+  dosageForms: Array<{ name: string; count: number }>;
+  categories: Array<{ name: string; slug: string; count: number }>;
+}
+
+/**
+ * Fetch authorized manufacturer IDs with in-memory caching (60s TTL).
+ */
+export async function getAuthorizedManufacturerIds(companyId: string): Promise<string[]> {
+  return memoryCache.getOrSet(`auth_mfg:${companyId}`, async () => {
+    const records = await prisma.companyManufacturer.findMany({
+      where: { companyId, isAuthorized: true },
+      select: { manufacturerId: true },
+    });
+    return records.map((r) => r.manufacturerId);
+  }, 60);
+}
+
+/**
+ * Compute or retrieve cached filter metadata (brands and dosage forms available for this company).
+ */
+export async function getCompanyFilterMeta(
+  companyId: string,
+  authorizedManufacturerIds: string[]
+): Promise<FilterMetaResult> {
+  if (authorizedManufacturerIds.length === 0) {
+    return { manufacturers: [], dosageForms: [], categories: [] };
+  }
+
+  return memoryCache.getOrSet(`filter_meta:${companyId}`, async () => {
+    // Fetch published company products with lightweight fields
+    const published = await prisma.companyProduct.findMany({
+      where: {
+        companyId,
+        isPublished: true,
+        product: { manufacturerId: { in: authorizedManufacturerIds } },
+      },
+      select: {
+        product: {
+          select: {
+            dosageForm: true,
+            manufacturer: {
+              select: { id: true, name: true, slug: true },
+            },
+          },
+        },
+      },
+    });
+
+    const mfgMap = new Map<string, { name: string; slug: string; count: number }>();
+    const dosageMap = new Map<string, number>();
+
+    for (const cp of published) {
+      const p = cp.product;
+      const m = p.manufacturer;
+      const existing = mfgMap.get(m.slug) || { name: m.name, slug: m.slug, count: 0 };
+      existing.count++;
+      mfgMap.set(m.slug, existing);
+
+      dosageMap.set(p.dosageForm, (dosageMap.get(p.dosageForm) || 0) + 1);
+    }
+
+    return {
+      manufacturers: Array.from(mfgMap.values()).sort((a, b) => a.name.localeCompare(b.name)),
+      dosageForms: Array.from(dosageMap.entries())
+        .map(([name, count]) => ({ name, count }))
+        .sort((a, b) => a.name.localeCompare(b.name)),
+      categories: [],
+    };
+  }, 60);
+}
+
+/**
+ * Fetch all ingredients with aliases cached for fast token matching (5 min TTL).
+ */
+async function getCachedIngredientsWithAliases() {
+  return memoryCache.getOrSet("all_ingredients_with_aliases", async () => {
+    return prisma.ingredient.findMany({
+      include: { aliases: true },
+    });
+  }, 300);
+}
+
+/**
+ * Main optimized catalogue search and filter routine.
+ */
 export async function searchCompanyProducts(
   companyId: string,
   filters: SearchFilters
@@ -62,91 +150,166 @@ export async function searchCompanyProducts(
   page: number;
   limit: number;
   totalPages: number;
-  filterMeta: {
-    manufacturers: Array<{ name: string; slug: string; count: number }>;
-    dosageForms: Array<{ name: string; count: number }>;
-    categories: Array<{ name: string; slug: string; count: number }>;
-  };
+  filterMeta: FilterMetaResult;
 }> {
   const page = Math.max(1, filters.page || 1);
   const limit = Math.max(1, Math.min(100, filters.limit || 12));
   const rawQuery = (filters.query || "").trim();
-
-  // Normalize query whitespace and lowercase
   const normalizedQuery = rawQuery.toLowerCase().replace(/\s+/g, " ");
 
-  // 1. Fetch all published products for this company
-  // Strictly company-scoped: products assigned to other companies will never be fetched
-  const companyProducts = await prisma.companyProduct.findMany({
-    where: {
+  const authorizedManufacturerIds = await getAuthorizedManufacturerIds(companyId);
+
+  if (authorizedManufacturerIds.length === 0) {
+    return {
+      products: [],
+      total: 0,
+      page,
+      limit,
+      totalPages: 1,
+      filterMeta: { manufacturers: [], dosageForms: [], categories: [] },
+    };
+  }
+
+  const filterMeta = await getCompanyFilterMeta(companyId, authorizedManufacturerIds);
+
+  // =========================================================================
+  // FAST PATH: Direct Server-Side Database Pagination (No Search Query)
+  // When browsing or filtering by brand/dosage form without freeform search text.
+  // =========================================================================
+  if (!normalizedQuery) {
+    const where: any = {
       companyId,
       isPublished: true,
-      ...(filters.manufacturerSlug
-        ? {
-            product: {
-              manufacturer: {
-                slug: filters.manufacturerSlug,
+      product: {
+        manufacturerId: { in: authorizedManufacturerIds },
+        ...(filters.manufacturerSlug ? { manufacturer: { slug: filters.manufacturerSlug } } : {}),
+        ...(filters.dosageForm ? { dosageForm: { equals: filters.dosageForm } } : {}),
+        ...(filters.strength
+          ? {
+              ingredients: {
+                some: !isNaN(parseFloat(filters.strength))
+                  ? { quantity: parseFloat(filters.strength) }
+                  : { unit: { contains: filters.strength, mode: "insensitive" } },
               },
-            },
-          }
-        : {}),
-      ...(filters.dosageForm
-        ? {
-            product: {
-              dosageForm: {
-                equals: filters.dosageForm,
-              },
-            },
-          }
-        : {}),
-      ...(filters.categorySlug
-        ? {
-            product: {
-              categories: {
-                some: {
-                  category: {
-                    slug: filters.categorySlug,
-                  },
+            }
+          : {}),
+      },
+    };
+
+    let orderBy: any;
+    if (filters.sort === "name_asc") {
+      orderBy = { product: { name: "asc" } };
+    } else if (filters.sort === "name_desc") {
+      orderBy = { product: { name: "desc" } };
+    } else {
+      orderBy = [{ isFeatured: "desc" }, { product: { name: "asc" } }];
+    }
+
+    const [total, companyProducts] = await Promise.all([
+      prisma.companyProduct.count({ where }),
+      prisma.companyProduct.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy,
+        include: {
+          product: {
+            include: {
+              manufacturer: true,
+              ingredients: {
+                include: {
+                  ingredient: true,
                 },
               },
             },
-          }
-        : {}),
-    },
-    include: {
-      product: {
-        include: {
-          manufacturer: true,
-          categories: {
-            include: {
-              category: true,
-            },
           },
-          ingredients: {
-            include: {
-              ingredient: {
-                include: {
-                  aliases: true,
+        },
+      }),
+    ]);
+
+    const products: ProductSearchResult[] = companyProducts.map((cp) => {
+      const prod = cp.product;
+      return {
+        id: prod.id,
+        slug: prod.slug,
+        name: prod.name,
+        dosageForm: prod.dosageForm,
+        packaging: prod.packaging,
+        description: prod.description,
+        storageConditions: prod.storageConditions,
+        schedule: prod.schedule,
+        isFeatured: cp.isFeatured,
+        itemCode: cp.itemCode,
+        manufacturer: {
+          id: prod.manufacturer.id,
+          name: prod.manufacturer.name,
+          slug: prod.manufacturer.slug,
+          logoUrl: prod.manufacturer.logoUrl,
+          website: prod.manufacturer.website,
+        },
+        ingredients: prod.ingredients.map((pi) => ({
+          id: pi.id,
+          ingredientId: pi.ingredientId,
+          name: pi.ingredient.name,
+          quantity: pi.quantity,
+          unit: pi.unit,
+          perBasis: pi.perBasis,
+          isPrimary: pi.isPrimary,
+        })),
+        categories: [],
+        matchScore: cp.isFeatured ? 10 : 1,
+        matchReasons: [],
+      };
+    });
+
+    return {
+      products,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit) || 1,
+      filterMeta,
+    };
+  }
+
+  // =========================================================================
+  // SEARCH PATH: Composition & Brand Name Scoring
+  // Cached company products for search (60s TTL) to make live searches instant
+  // =========================================================================
+  const allIngredients = await getCachedIngredientsWithAliases();
+
+  const cacheKey = `search_pool:${companyId}:${filters.manufacturerSlug || "all"}:${filters.dosageForm || "all"}`;
+  const companyProducts = await memoryCache.getOrSet(cacheKey, async () => {
+    return prisma.companyProduct.findMany({
+      where: {
+        companyId,
+        isPublished: true,
+        product: {
+          manufacturerId: { in: authorizedManufacturerIds },
+          ...(filters.manufacturerSlug ? { manufacturer: { slug: filters.manufacturerSlug } } : {}),
+          ...(filters.dosageForm ? { dosageForm: { equals: filters.dosageForm } } : {}),
+        },
+      },
+      include: {
+        product: {
+          include: {
+            manufacturer: true,
+            ingredients: {
+              include: {
+                ingredient: {
+                  include: { aliases: true },
                 },
               },
             },
           },
         },
       },
-    },
-  });
+    });
+  }, 60);
 
-  // 2. Pre-fetch all ingredients and aliases to assist query resolution
-  const allIngredients = await prisma.ingredient.findMany({
-    include: {
-      aliases: true,
-    },
-  });
-
-  // Extract strength pattern from query (e.g. "650", "650mg", "650 mg", "500", "500 mg")
+  // Extract strength pattern from query (e.g. "650", "650mg", "2.5", "60 mg")
   const strengthMatch = normalizedQuery.match(/(\d+(?:\.\d+)?)\s*(mg|g|mcg|ml|%)?/);
   const queryStrengthNumber = strengthMatch ? parseFloat(strengthMatch[1]) : null;
-  const queryStrengthUnit = strengthMatch && strengthMatch[2] ? strengthMatch[2].toLowerCase() : null;
 
   // Extract clean text tokens excluding pure numeric tokens
   const queryTokens = normalizedQuery
@@ -184,7 +347,7 @@ export async function searchCompanyProducts(
     }
   }
 
-  // 3. Score and filter each product
+  // Score and filter matching products
   const scoredProducts: ProductSearchResult[] = [];
 
   for (const cp of companyProducts) {
@@ -199,134 +362,115 @@ export async function searchCompanyProducts(
     if (filters.strength) {
       const reqNum = parseFloat(filters.strength);
       const hasReqStrength = prod.ingredients.some((pi) =>
-        !isNaN(reqNum) ? pi.quantity === reqNum : `${pi.quantity} ${pi.unit}`.toLowerCase().includes(filters.strength!.toLowerCase())
+        !isNaN(reqNum)
+          ? pi.quantity === reqNum
+          : `${pi.quantity} ${pi.unit}`.toLowerCase().includes(filters.strength!.toLowerCase())
       );
       if (!hasReqStrength) continue;
     }
 
-    if (normalizedQuery) {
-      // Check 1: Brand / Product name match
-      if (prodNameLower === normalizedQuery) {
-        score += 120;
-        reasons.push({ type: "brand_name", label: "Exact Brand Match", detail: prod.name });
-      } else if (prodNameLower.includes(normalizedQuery)) {
-        score += 90;
-        reasons.push({ type: "brand_name", label: "Brand Name Match", detail: prod.name });
-      } else {
-        // Token matches on product name
-        const brandTokenMatch = queryTokens.some((t) => prodNameLower.includes(t));
-        if (brandTokenMatch) {
-          score += 40;
-          reasons.push({ type: "brand_name", label: "Brand Match", detail: prod.name });
+    // Check 1: Brand / Product name match
+    if (prodNameLower === normalizedQuery) {
+      score += 120;
+      reasons.push({ type: "brand_name", label: "Exact Brand Match", detail: prod.name });
+    } else if (prodNameLower.includes(normalizedQuery)) {
+      score += 90;
+      reasons.push({ type: "brand_name", label: "Brand Name Match", detail: prod.name });
+    } else {
+      const brandTokenMatch = queryTokens.some((t) => prodNameLower.includes(t));
+      if (brandTokenMatch) {
+        score += 40;
+        reasons.push({ type: "brand_name", label: "Brand Match", detail: prod.name });
+      }
+    }
+
+    // Check 2: Manufacturer name match
+    if (mfgNameLower.includes(normalizedQuery)) {
+      score += 50;
+      reasons.push({ type: "manufacturer", label: "Manufacturer Match", detail: prod.manufacturer.name });
+    }
+
+    // Check 3: Structured Ingredients & Aliases Match
+    let matchedIngredientsCount = 0;
+    let matchedStrengthCount = 0;
+
+    for (const pi of prod.ingredients) {
+      const canonicalNameLower = pi.ingredient.name.toLowerCase();
+      const aliases = pi.ingredient.aliases.map((a) => a.aliasName.toLowerCase());
+
+      const isCanonicalMatch =
+        normalizedQuery.includes(canonicalNameLower) ||
+        queryTokens.some((t) => canonicalNameLower.includes(t));
+
+      const matchedAlias = aliases.find(
+        (a) => normalizedQuery.includes(a) || queryTokens.some((t) => a.includes(t))
+      );
+
+      if (isCanonicalMatch || matchedAlias) {
+        matchedIngredientsCount++;
+
+        if (matchedAlias) {
+          score += 85;
+          reasons.push({
+            type: "ingredient_alias",
+            label: `Alias Match: "${matchedAlias}"`,
+            detail: `Resolves to ${pi.ingredient.name} (${pi.quantity} ${pi.unit})`,
+          });
+        } else {
+          score += 80;
+          reasons.push({
+            type: "ingredient",
+            label: `Composition Match: ${pi.ingredient.name}`,
+            detail: `${pi.quantity} ${pi.unit} ${pi.perBasis}`,
+          });
         }
-      }
 
-      // Check 2: Manufacturer name match
-      if (mfgNameLower.includes(normalizedQuery)) {
-        score += 50;
-        reasons.push({ type: "manufacturer", label: "Manufacturer Match", detail: prod.manufacturer.name });
-      }
-
-      // Check 3: Structured Ingredients & Aliases Match
-      let matchedIngredientsCount = 0;
-      let matchedStrengthCount = 0;
-
-      for (const pi of prod.ingredients) {
-        const canonicalNameLower = pi.ingredient.name.toLowerCase();
-        const aliases = pi.ingredient.aliases.map((a) => a.aliasName.toLowerCase());
-
-        // Did user query this ingredient canonically?
-        const isCanonicalMatch =
-          normalizedQuery.includes(canonicalNameLower) ||
-          queryTokens.some((t) => canonicalNameLower.includes(t));
-
-        // Did user query this ingredient via alias? (e.g. acetaminophen -> paracetamol)
-        const matchedAlias = aliases.find(
-          (a) => normalizedQuery.includes(a) || queryTokens.some((t) => a.includes(t))
-        );
-
-        if (isCanonicalMatch || matchedAlias) {
-          matchedIngredientsCount++;
-
-          if (matchedAlias) {
-            score += 85;
-            reasons.push({
-              type: "ingredient_alias",
-              label: `Alias Match: "${matchedAlias}"`,
-              detail: `Resolves to ${pi.ingredient.name} (${pi.quantity} ${pi.unit})`,
-            });
-          } else {
-            score += 80;
-            reasons.push({
-              type: "ingredient",
-              label: `Composition Match: ${pi.ingredient.name}`,
-              detail: `${pi.quantity} ${pi.unit} ${pi.perBasis}`,
-            });
-          }
-
-          // Check 4: Strength match on this ingredient
-          if (queryStrengthNumber !== null) {
-            if (pi.quantity === queryStrengthNumber) {
-              matchedStrengthCount++;
-              score += 40;
-              reasons.push({
-                type: "strength",
-                label: `Strength Match: ${pi.quantity} ${pi.unit}`,
-                detail: `Matches query strength (${pi.quantity} ${pi.unit})`,
-              });
-            }
-          }
-        } else if (queryStrengthNumber !== null && pi.quantity === queryStrengthNumber) {
-          // Matched strength alone
+        if (queryStrengthNumber !== null && pi.quantity === queryStrengthNumber) {
           matchedStrengthCount++;
-          score += 20;
+          score += 40;
           reasons.push({
             type: "strength",
             label: `Strength Match: ${pi.quantity} ${pi.unit}`,
+            detail: `Matches query strength (${pi.quantity} ${pi.unit})`,
           });
         }
-      }
-
-      // Multi-ingredient matching check:
-      // If user queried multiple ingredients (e.g., amoxicillin + clavulanate),
-      // reward products containing all requested ingredients
-      if (matchedCanonicalIngredients.length > 1) {
-        const containsAll = matchedCanonicalIngredients.every((mci) =>
-          prod.ingredients.some((pi) => pi.ingredientId === mci.ingredient.id)
-        );
-        if (containsAll) {
-          score += 60;
-          reasons.push({
-            type: "exact_composition",
-            label: "Full Multi-Ingredient Match",
-            detail: `Contains all ${matchedCanonicalIngredients.length} queried ingredients`,
-          });
-        }
-      }
-
-      // EXACT COMPOSITION MATCH CHECK:
-      // If the query specified both the ingredient and the exact strength
-      // and it accounts for the product's primary composition:
-      if (
-        matchedIngredientsCount > 0 &&
-        queryStrengthNumber !== null &&
-        matchedStrengthCount > 0
-      ) {
-        score += 50; // Boost exact composition matches to the top
-        reasons.unshift({
-          type: "exact_composition",
-          label: "Exact Composition & Strength Match",
-          detail: `${prod.ingredients.map((i) => `${i.ingredient.name} ${i.quantity} ${i.unit}`).join(" + ")}`,
+      } else if (queryStrengthNumber !== null && pi.quantity === queryStrengthNumber) {
+        matchedStrengthCount++;
+        score += 20;
+        reasons.push({
+          type: "strength",
+          label: `Strength Match: ${pi.quantity} ${pi.unit}`,
         });
       }
+    }
 
-      // If nothing matched, skip this product
-      if (score === 0) {
-        continue;
+    // Multi-ingredient matching check
+    if (matchedCanonicalIngredients.length > 1) {
+      const containsAll = matchedCanonicalIngredients.every((mci) =>
+        prod.ingredients.some((pi) => pi.ingredientId === mci.ingredient.id)
+      );
+      if (containsAll) {
+        score += 60;
+        reasons.push({
+          type: "exact_composition",
+          label: "Full Multi-Ingredient Match",
+          detail: `Contains all ${matchedCanonicalIngredients.length} queried ingredients`,
+        });
       }
-    } else {
-      // No search query: default score based on featured status
-      score = cp.isFeatured ? 10 : 1;
+    }
+
+    // Exact composition & strength match boost
+    if (matchedIngredientsCount > 0 && queryStrengthNumber !== null && matchedStrengthCount > 0) {
+      score += 50;
+      reasons.unshift({
+        type: "exact_composition",
+        label: "Exact Composition & Strength Match",
+        detail: `${prod.ingredients.map((i) => `${i.ingredient.name} ${i.quantity} ${i.unit}`).join(" + ")}`,
+      });
+    }
+
+    if (score === 0) {
+      continue;
     }
 
     scoredProducts.push({
@@ -356,62 +500,15 @@ export async function searchCompanyProducts(
         perBasis: pi.perBasis,
         isPrimary: pi.isPrimary,
       })),
-      categories: prod.categories.map((c) => ({
-        id: c.category.id,
-        name: c.category.name,
-        slug: c.category.slug,
-      })),
+      categories: [],
       matchScore: score,
       matchReasons: reasons,
     });
   }
 
-  // 4. Sort results
-  if (normalizedQuery) {
-    // When querying, rank highest match score first (exact matches rank ahead of broad matches)
-    scoredProducts.sort((a, b) => b.matchScore - a.matchScore);
-  } else {
-    // Default sorting
-    if (filters.sort === "name_asc") {
-      scoredProducts.sort((a, b) => a.name.localeCompare(b.name));
-    } else if (filters.sort === "name_desc") {
-      scoredProducts.sort((a, b) => b.name.localeCompare(a.name));
-    } else {
-      // featured first, then alphabetical
-      scoredProducts.sort((a, b) => {
-        if (a.isFeatured && !b.isFeatured) return -1;
-        if (!a.isFeatured && b.isFeatured) return 1;
-        return a.name.localeCompare(b.name);
-      });
-    }
-  }
+  // Sort by score
+  scoredProducts.sort((a, b) => b.matchScore - a.matchScore);
 
-  // 5. Compute Facets/Filters metadata from all published products of this company
-  const mfgMap = new Map<string, { name: string; slug: string; count: number }>();
-  const dosageMap = new Map<string, number>();
-  const catMap = new Map<string, { name: string; slug: string; count: number }>();
-
-  for (const cp of companyProducts) {
-    const p = cp.product;
-    const m = p.manufacturer;
-    const existingMfg = mfgMap.get(m.slug) || { name: m.name, slug: m.slug, count: 0 };
-    existingMfg.count++;
-    mfgMap.set(m.slug, existingMfg);
-
-    dosageMap.set(p.dosageForm, (dosageMap.get(p.dosageForm) || 0) + 1);
-
-    for (const c of p.categories) {
-      const existingCat = catMap.get(c.category.slug) || {
-        name: c.category.name,
-        slug: c.category.slug,
-        count: 0,
-      };
-      existingCat.count++;
-      catMap.set(c.category.slug, existingCat);
-    }
-  }
-
-  // 6. Pagination
   const total = scoredProducts.length;
   const totalPages = Math.ceil(total / limit) || 1;
   const paginatedProducts = scoredProducts.slice((page - 1) * limit, page * limit);
@@ -422,12 +519,6 @@ export async function searchCompanyProducts(
     page,
     limit,
     totalPages,
-    filterMeta: {
-      manufacturers: Array.from(mfgMap.values()).sort((a, b) => a.name.localeCompare(b.name)),
-      dosageForms: Array.from(dosageMap.entries())
-        .map(([name, count]) => ({ name, count }))
-        .sort((a, b) => a.name.localeCompare(b.name)),
-      categories: Array.from(catMap.values()).sort((a, b) => a.name.localeCompare(b.name)),
-    },
+    filterMeta,
   };
 }

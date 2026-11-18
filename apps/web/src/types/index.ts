@@ -90,7 +90,7 @@ export interface Product {
     website?: string | null;
   };
   ingredients: StructuredIngredient[];
-  categories: Array<{
+  categories?: Array<{
     id: string;
     name: string;
     slug: string;
@@ -119,7 +119,7 @@ export interface Product {
 export interface FilterMeta {
   manufacturers: Array<{ name: string; slug: string; count: number }>;
   dosageForms: Array<{ name: string; count: number }>;
-  categories: Array<{ name: string; slug: string; count: number }>;
+  categories?: Array<{ name: string; slug: string; count: number }>;
 }
 
 export interface CatalogResponse {

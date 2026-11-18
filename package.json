@@ -16,6 +16,9 @@
     "build:api": "npm run build --workspace=@lk/api",
     "db:generate": "npm run generate --workspace=@lk/database",
     "db:seed": "npm run seed --workspace=@lk/database",
+    "db:reseed:rhine": "npm run reseed:rhine-single --workspace=@lk/database",
+    "db:seed:rhine-group": "npm run seed:rhine-group --workspace=@lk/database",
+    "db:import": "npm run import:products --workspace=@lk/database",
     "db:studio": "npm run studio --workspace=@lk/database"
   },
   "keywords": [

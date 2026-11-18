@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowRight, Search, Phone, MessageCircle, Clock, MapPin, ShieldCheck } from "lucide-react";
-import { fetchCatalog, fetchManufacturers } from "@/lib/api";
+import { fetchCompanyFilterMeta, fetchManufacturers } from "@/lib/api";
 import { companyColor, featuredToProduct, telHref, whatsappHref } from "@/lib/companies";
 import { getCompany } from "@/lib/server";
 import { DoseViewer } from "@/components/three/DoseViewer";
@@ -8,17 +8,18 @@ import { ProductTable } from "@/components/catalog/ProductTable";
 import { ManufacturerLogo } from "@/components/common/ManufacturerLogo";
 import { DoseIcon } from "@/components/ui/DoseIcon";
 
+export const revalidate = 300;
+
 export default async function CompanyOverviewPage({ params }: { params: { companySlug: string } }) {
   const slug = params.companySlug;
-  const [company, catalog, makers] = await Promise.all([
+  const [company, meta, makers] = await Promise.all([
     getCompany(slug),
-    fetchCatalog(slug, { limit: 1 }).catch(() => null),
+    fetchCompanyFilterMeta(slug).catch(() => null),
     fetchManufacturers(slug).catch(() => null),
   ]);
   const color = companyColor(slug);
   const featured = (company.featuredProducts ?? []).map(featuredToProduct);
-  const meta = catalog?.filterMeta;
-  const totalProducts = company.stats?.totalProducts ?? catalog?.total;
+  const totalProducts = company.stats?.totalProducts;
   const totalMakers = company.stats?.totalManufacturers ?? makers?.data.length;
 
   return (
@@ -54,7 +55,7 @@ export default async function CompanyOverviewPage({ params }: { params: { compan
                   id="hero-q"
                   name="q"
                   type="search"
-                  placeholder="Brand or salt, e.g. Paracetamol"
+                  placeholder="Brand or salt, e.g. Bisoprolol or DAPARIN"
                   className="min-w-0 flex-1 bg-transparent text-lg outline-none placeholder:text-ink-mute"
                 />
                 <button type="submit" className="btn-primary px-5">
@@ -112,17 +113,6 @@ export default async function CompanyOverviewPage({ params }: { params: { compan
                   </span>
                   {d.name}
                   <span className="text-ink-mute">{d.count}</span>
-                </Link>
-              </li>
-            ))}
-            {meta.categories.map((c) => (
-              <li key={c.slug} className="snap-start">
-                <Link
-                  href={`/${slug}/products?category=${c.slug}`}
-                  className="flex min-h-[64px] items-center gap-3 whitespace-nowrap rounded-2xl border border-line bg-white px-5 text-base font-semibold shadow-card hover:border-accent"
-                >
-                  {c.name}
-                  <span className="text-ink-mute">{c.count}</span>
                 </Link>
               </li>
             ))}

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -16,10 +16,20 @@ import {
   AlertCircle,
   Edit2,
   Shield,
+  ShieldCheck,
   Save,
   Check,
   X,
   ExternalLink,
+  Search,
+  Filter,
+  Phone,
+  Mail,
+  Eye,
+  EyeOff,
+  Trash2,
+  Tag,
+  Loader2,
 } from "lucide-react";
 import { AuthUser, Inquiry } from "@/types";
 import {
@@ -28,8 +38,12 @@ import {
   fetchAdminInquiries,
   updateInquiryStatus,
   fetchAdminProducts,
+  updateAdminProduct,
+  deleteAdminProduct,
   toggleCompanyProductListing,
   fetchAdminManufacturers,
+  fetchAdminCompanyManufacturers,
+  toggleCompanyManufacturerAuthorization,
   saveManufacturer,
   fetchAdminIngredients,
   saveIngredient,
@@ -40,7 +54,7 @@ import { ManufacturerLogo } from "@/components/common/ManufacturerLogo";
 type AdminTab =
   | "overview"
   | "inquiries"
-  | "listings"
+  | "brand_matrix"
   | "products"
   | "manufacturers"
   | "ingredients"
@@ -59,16 +73,58 @@ export default function AdminDashboardPage() {
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [manufacturers, setManufacturers] = useState<any[]>([]);
+  const [companyManufacturers, setCompanyManufacturers] = useState<any[]>([]);
   const [ingredients, setIngredients] = useState<any[]>([]);
+
+  // Product Search, Filter & Server Pagination
+  const [productSearch, setProductSearch] = useState("");
+  const [productDosageFilter, setProductDosageFilter] = useState("ALL");
+  const [productPage, setProductPage] = useState(1);
+  const [productLimit, setProductLimit] = useState(25);
+  const [productPagination, setProductPagination] = useState({ total: 0, totalPages: 1 });
+  const [productsLoading, setProductsLoading] = useState(false);
+
+  // Content & Action Loading States
+  const [overviewLoading, setOverviewLoading] = useState(false);
+  const [inquiriesLoading, setInquiriesLoading] = useState(false);
+  const [brandsLoading, setBrandsLoading] = useState(false);
+  const [ingredientsLoading, setIngredientsLoading] = useState(false);
+  const [actionLoadingKey, setActionLoadingKey] = useState<string | null>(null);
+  const [savingCompanyProfile, setSavingCompanyProfile] = useState(false);
+  const [updatingInquiry, setUpdatingInquiry] = useState(false);
+  const [savingMfg, setSavingMfg] = useState(false);
+  const [savingIngredient, setSavingIngredient] = useState(false);
 
   // Selected Inquiry for Modal / Edit
   const [selectedInquiry, setSelectedInquiry] = useState<Inquiry | null>(null);
   const [inquiryStatus, setInquiryStatus] = useState<string>("PENDING");
   const [inquiryNotes, setInquiryNotes] = useState<string>("");
+  const [inquiryStatusFilter, setInquiryStatusFilter] = useState<string>("ALL");
+  const [inquirySearch, setInquirySearch] = useState<string>("");
+
+  // Product Edit Modal State
+  const [editingProduct, setEditingProduct] = useState<any | null>(null);
+  const [productForm, setProductForm] = useState({
+    name: "",
+    slug: "",
+    dosageForm: "",
+    packaging: "",
+    schedule: "",
+    storageConditions: "",
+    description: "",
+    manufacturerId: "",
+    itemCode: "",
+    distributorNotes: "",
+    companyId: "",
+  });
+  const [savingProduct, setSavingProduct] = useState(false);
 
   // Edit Company Profile Form State
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string>("");
   const [companyProfileForm, setCompanyProfileForm] = useState({
     id: "",
+    name: "",
+    tagline: "",
     address: "",
     phone: "",
     email: "",
@@ -76,6 +132,8 @@ export default function AdminDashboardPage() {
     businessHours: "",
     serviceAreas: "",
     description: "",
+    drugLicenseNo: "",
+    gstin: "",
   });
 
   // New Manufacturer Form State
@@ -117,62 +175,104 @@ export default function AdminDashboardPage() {
 
   // Load Overview Data
   const loadOverview = async (authToken: string) => {
+    setOverviewLoading(true);
     try {
       const data = await fetchAdminOverview(authToken);
       setOverviewData(data);
+      if (data.companies && data.companies.length > 0 && !selectedCompanyId) {
+        setSelectedCompanyId(data.companies[0].id);
+        loadCompanyProfile(data.companies[0]);
+      }
     } catch (err) {
       console.error(err);
+    } finally {
+      setOverviewLoading(false);
     }
   };
 
   // Load Inquiries
   const loadInquiries = async () => {
     if (!token) return;
+    setInquiriesLoading(true);
     try {
-      const data = await fetchAdminInquiries(token);
-      setInquiries(data);
+      const res = await fetchAdminInquiries(token);
+      setInquiries(res.data);
     } catch (err: any) {
       showStatus("error", err.message);
+    } finally {
+      setInquiriesLoading(false);
     }
   };
 
-  // Load Products
-  const loadProducts = async () => {
+  // Load Products (With Server Pagination & Filtering)
+  const loadProducts = async (
+    page = productPage,
+    search = productSearch,
+    dosage = productDosageFilter,
+    limit = productLimit
+  ) => {
     if (!token) return;
+    setProductsLoading(true);
     try {
-      const data = await fetchAdminProducts(token);
-      setProducts(data);
+      const res = await fetchAdminProducts(token, {
+        page,
+        limit,
+        q: search.trim() || undefined,
+        dosageForm: dosage !== "ALL" ? dosage : undefined,
+      });
+      setProducts(res.data);
+      if (res.pagination) {
+        setProductPagination({
+          total: res.pagination.total,
+          totalPages: res.pagination.totalPages,
+        });
+      }
     } catch (err: any) {
       showStatus("error", err.message);
+    } finally {
+      setProductsLoading(false);
     }
   };
 
-  // Load Manufacturers
+  // Load Manufacturers & Company Brand Authorizations
   const loadManufacturers = async () => {
     if (!token) return;
+    setBrandsLoading(true);
     try {
-      const data = await fetchAdminManufacturers(token);
-      setManufacturers(data);
+      const [mfgData, cmData] = await Promise.all([
+        fetchAdminManufacturers(token),
+        fetchAdminCompanyManufacturers(token),
+      ]);
+      setManufacturers(mfgData);
+      setCompanyManufacturers(cmData);
     } catch (err: any) {
       showStatus("error", err.message);
+    } finally {
+      setBrandsLoading(false);
     }
   };
 
   // Load Ingredients
   const loadIngredients = async () => {
     if (!token) return;
+    setIngredientsLoading(true);
     try {
       const data = await fetchAdminIngredients(token);
       setIngredients(data);
     } catch (err: any) {
       showStatus("error", err.message);
+    } finally {
+      setIngredientsLoading(false);
     }
   };
 
   // Load Company Profile for Edit
   const loadCompanyProfile = (company: any) => {
+    setSelectedCompanyId(company.id);
     setCompanyProfileForm({
       id: company.id,
+      name: company.name || "",
+      tagline: company.tagline || "",
       address: company.address || "",
       phone: company.phone || "",
       email: company.email || "",
@@ -180,12 +280,14 @@ export default function AdminDashboardPage() {
       businessHours: company.businessHours || "",
       serviceAreas: company.serviceAreas || "",
       description: company.description || "",
+      drugLicenseNo: company.drugLicenseNo || "",
+      gstin: company.gstin || "",
     });
   };
 
   const showStatus = (type: "success" | "error", text: string) => {
     setStatusMessage({ type, text });
-    setTimeout(() => setStatusMessage(null), 5000);
+    setTimeout(() => setStatusMessage(null), 6000);
   };
 
   const handleLogout = () => {
@@ -199,7 +301,8 @@ export default function AdminDashboardPage() {
     setActiveTab(tab);
     if (!token) return;
     if (tab === "inquiries") loadInquiries();
-    if (tab === "listings" || tab === "products") loadProducts();
+    if (tab === "products") loadProducts();
+    if (tab === "brand_matrix") loadManufacturers();
     if (tab === "manufacturers") loadManufacturers();
     if (tab === "ingredients") loadIngredients();
   };
@@ -207,6 +310,7 @@ export default function AdminDashboardPage() {
   // Inquiry Update
   const handleUpdateInquiry = async () => {
     if (!token || !selectedInquiry) return;
+    setUpdatingInquiry(true);
     try {
       await updateInquiryStatus(token, selectedInquiry.id, inquiryStatus, inquiryNotes);
       showStatus("success", "Inquiry updated successfully");
@@ -214,6 +318,80 @@ export default function AdminDashboardPage() {
       loadInquiries();
     } catch (err: any) {
       showStatus("error", err.message);
+    } finally {
+      setUpdatingInquiry(false);
+    }
+  };
+
+  // Toggle Brand Authorization for a Distributor Company
+  const handleToggleBrandAuth = async (companyId: string, manufacturerId: string, currentAuthorized: boolean) => {
+    if (!token) return;
+    const key = `auth:${companyId}:${manufacturerId}`;
+    setActionLoadingKey(key);
+    try {
+      const res = await toggleCompanyManufacturerAuthorization(token, {
+        companyId,
+        manufacturerId,
+        isAuthorized: !currentAuthorized,
+      });
+      showStatus("success", res.message || "Brand authorization updated");
+      await loadManufacturers();
+      if (token) loadOverview(token);
+    } catch (err: any) {
+      showStatus("error", err.message);
+    } finally {
+      setActionLoadingKey(null);
+    }
+  };
+
+  // Open Product Edit Modal
+  const handleOpenEditProduct = (prod: any) => {
+    setEditingProduct(prod);
+    const lakshmiListing = prod.companyProducts?.find((cp: any) => cp.company?.slug === "lakshmi-pharma");
+    const kothittilListing = prod.companyProducts?.find((cp: any) => cp.company?.slug === "kothittil-pharma");
+    const defaultListing = lakshmiListing || kothittilListing || prod.companyProducts?.[0];
+
+    setProductForm({
+      name: prod.name,
+      slug: prod.slug,
+      dosageForm: prod.dosageForm,
+      packaging: prod.packaging,
+      schedule: prod.schedule || "Schedule H Prescription Drug",
+      storageConditions: prod.storageConditions || "Store below 25°C in a dry place. Protect from light.",
+      description: prod.description || "",
+      manufacturerId: prod.manufacturerId,
+      itemCode: defaultListing?.itemCode || "",
+      distributorNotes: defaultListing?.distributorNotes || "",
+      companyId: defaultListing?.companyId || "",
+    });
+  };
+
+  // Save Product Changes
+  const handleSaveProduct = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token || !editingProduct) return;
+    setSavingProduct(true);
+    try {
+      await updateAdminProduct(token, editingProduct.id, {
+        name: productForm.name,
+        dosageForm: productForm.dosageForm,
+        packaging: productForm.packaging,
+        schedule: productForm.schedule || null,
+        storageConditions: productForm.storageConditions || null,
+        description: productForm.description || null,
+        manufacturerId: productForm.manufacturerId,
+        itemCode: productForm.itemCode || null,
+        distributorNotes: productForm.distributorNotes || null,
+        companyId: productForm.companyId || undefined,
+      });
+
+      showStatus("success", `Product "${productForm.name}" updated successfully`);
+      setEditingProduct(null);
+      loadProducts();
+    } catch (err: any) {
+      showStatus("error", err.message);
+    } finally {
+      setSavingProduct(false);
     }
   };
 
@@ -225,6 +403,8 @@ export default function AdminDashboardPage() {
     currentVal: boolean
   ) => {
     if (!token) return;
+    const key = `listing:${companyId}:${productId}:${field}`;
+    setActionLoadingKey(key);
     try {
       await toggleCompanyProductListing(token, {
         companyId,
@@ -232,9 +412,11 @@ export default function AdminDashboardPage() {
         [field]: !currentVal,
       });
       showStatus("success", "Catalog status updated");
-      loadProducts();
+      await loadProducts(productPage, productSearch, productDosageFilter, productLimit);
     } catch (err: any) {
       showStatus("error", err.message);
+    } finally {
+      setActionLoadingKey(null);
     }
   };
 
@@ -242,6 +424,7 @@ export default function AdminDashboardPage() {
   const handleSaveManufacturer = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!token) return;
+    setSavingMfg(true);
     try {
       await saveManufacturer(token, {
         name: mfgForm.name,
@@ -254,6 +437,8 @@ export default function AdminDashboardPage() {
       loadManufacturers();
     } catch (err: any) {
       showStatus("error", err.message);
+    } finally {
+      setSavingMfg(false);
     }
   };
 
@@ -261,6 +446,7 @@ export default function AdminDashboardPage() {
   const handleSaveIngredient = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!token) return;
+    setSavingIngredient(true);
     try {
       const aliases = ingForm.aliasesText
         .split(",")
@@ -279,6 +465,8 @@ export default function AdminDashboardPage() {
       loadIngredients();
     } catch (err: any) {
       showStatus("error", err.message);
+    } finally {
+      setSavingIngredient(false);
     }
   };
 
@@ -286,6 +474,7 @@ export default function AdminDashboardPage() {
   const handleSaveCompanyProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!token || !companyProfileForm.id) return;
+    setSavingCompanyProfile(true);
     try {
       await updateCompanyProfile(token, companyProfileForm.id, {
         address: companyProfileForm.address,
@@ -295,18 +484,54 @@ export default function AdminDashboardPage() {
         businessHours: companyProfileForm.businessHours,
         serviceAreas: companyProfileForm.serviceAreas,
         description: companyProfileForm.description,
+        drugLicenseNo: companyProfileForm.drugLicenseNo || null,
+        gstin: companyProfileForm.gstin || null,
+        tagline: companyProfileForm.tagline || null,
       });
       showStatus("success", "Company profile updated successfully");
       loadOverview(token);
     } catch (err: any) {
       showStatus("error", err.message);
+    } finally {
+      setSavingCompanyProfile(false);
     }
   };
 
+  // Debounced server search & filter for products
+  useEffect(() => {
+    if (activeTab !== "products" || !token) return;
+    const timer = setTimeout(() => {
+      setProductPage(1);
+      loadProducts(1, productSearch, productDosageFilter, productLimit);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [productSearch, productDosageFilter, activeTab, productLimit]);
+
+  // Products are filtered and paginated on PostgreSQL server-side
+  const filteredProducts = products;
+
+  // Filtered Inquiries Memo
+  const filteredInquiries = useMemo(() => {
+    return inquiries.filter((inq) => {
+      const matchStatus = inquiryStatusFilter === "ALL" || inq.status === inquiryStatusFilter;
+      const matchSearch =
+        !inquirySearch ||
+        inq.businessName?.toLowerCase().includes(inquirySearch.toLowerCase()) ||
+        inq.name?.toLowerCase().includes(inquirySearch.toLowerCase()) ||
+        inq.phone?.includes(inquirySearch) ||
+        inq.product?.name?.toLowerCase().includes(inquirySearch.toLowerCase());
+      return matchStatus && matchSearch;
+    });
+  }, [inquiries, inquiryStatusFilter, inquirySearch]);
+
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="text-xs text-slate-500 font-medium">Verifying administrator credentials...</div>
+      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-6 text-white text-center">
+        <div className="w-12 h-12 rounded-2xl bg-teal-500/20 border border-teal-500/30 flex items-center justify-center animate-pulse mb-4 text-teal-400">
+          <Building2 className="w-6 h-6" />
+        </div>
+        <h2 className="text-lg font-bold">Verifying Administration Access</h2>
+        <p className="text-xs text-slate-400 mt-1">Connecting to distributor node...</p>
       </div>
     );
   }
@@ -354,20 +579,62 @@ export default function AdminDashboardPage() {
         {/* Sidebar Nav */}
         <aside className="w-full md:w-64 bg-white rounded-2xl border border-slate-200 p-4 shrink-0 shadow-xs space-y-1">
           <div className="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-            Portal Navigation
+            Distributor Management
           </div>
 
           <button
             type="button"
             onClick={() => handleTabChange("overview")}
-            className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl font-semibold transition-colors text-left ${
+            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-semibold transition-colors text-left ${
               activeTab === "overview"
                 ? "bg-slate-900 text-white font-bold"
                 : "text-slate-600 hover:bg-slate-100"
             }`}
           >
-            <LayoutDashboard className="w-4 h-4" />
-            <span>Overview &amp; Stats</span>
+            <div className="flex items-center gap-2.5">
+              <LayoutDashboard className="w-4 h-4" />
+              <span>Overview &amp; Stats</span>
+            </div>
+            {overviewLoading && <Loader2 className="w-3.5 h-3.5 animate-spin text-teal-400 shrink-0" />}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleTabChange("brand_matrix")}
+            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-semibold transition-colors text-left ${
+              activeTab === "brand_matrix"
+                ? "bg-slate-900 text-white font-bold"
+                : "text-slate-600 hover:bg-slate-100"
+            }`}
+          >
+            <div className="flex items-center gap-2.5">
+              <ShieldCheck className="w-4 h-4 text-emerald-500" />
+              <span>Brand Authorization</span>
+            </div>
+            {brandsLoading && <Loader2 className="w-3.5 h-3.5 animate-spin text-teal-400 shrink-0" />}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleTabChange("products")}
+            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-semibold transition-colors text-left ${
+              activeTab === "products"
+                ? "bg-slate-900 text-white font-bold"
+                : "text-slate-600 hover:bg-slate-100"
+            }`}
+          >
+            <div className="flex items-center gap-2.5">
+              <Package className="w-4 h-4" />
+              <span>Products &amp; Catalog</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              {productsLoading && <Loader2 className="w-3.5 h-3.5 animate-spin text-teal-400 shrink-0" />}
+              {overviewData?.stats?.totalProducts > 0 && (
+                <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-slate-100 text-slate-700">
+                  {overviewData.stats.totalProducts}
+                </span>
+              )}
+            </div>
           </button>
 
           <button
@@ -381,71 +648,72 @@ export default function AdminDashboardPage() {
           >
             <div className="flex items-center gap-2.5">
               <MessageSquare className="w-4 h-4" />
-              <span>Incoming Inquiries</span>
+              <span>Wholesale Inquiries</span>
             </div>
-            {overviewData?.stats?.pendingInquiries > 0 && (
-              <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500 text-slate-950">
-                {overviewData.stats.pendingInquiries}
-              </span>
-            )}
+            <div className="flex items-center gap-1.5">
+              {inquiriesLoading && <Loader2 className="w-3.5 h-3.5 animate-spin text-teal-400 shrink-0" />}
+              {overviewData?.stats?.pendingInquiries > 0 && (
+                <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500 text-slate-950">
+                  {overviewData.stats.pendingInquiries}
+                </span>
+              )}
+            </div>
           </button>
 
           <button
             type="button"
-            onClick={() => handleTabChange("listings")}
-            className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl font-semibold transition-colors text-left ${
-              activeTab === "listings"
+            onClick={() => handleTabChange("company_profile")}
+            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-semibold transition-colors text-left ${
+              activeTab === "company_profile"
                 ? "bg-slate-900 text-white font-bold"
                 : "text-slate-600 hover:bg-slate-100"
             }`}
           >
-            <Package className="w-4 h-4" />
-            <span>Company Catalog Listings</span>
+            <div className="flex items-center gap-2.5">
+              <Building2 className="w-4 h-4" />
+              <span>Company Profiles</span>
+            </div>
+            {savingCompanyProfile && <Loader2 className="w-3.5 h-3.5 animate-spin text-teal-400 shrink-0" />}
           </button>
 
           {isSuper && (
-            <button
-              type="button"
-              onClick={() => handleTabChange("products")}
-              className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl font-semibold transition-colors text-left ${
-                activeTab === "products"
-                  ? "bg-slate-900 text-white font-bold"
-                  : "text-slate-600 hover:bg-slate-100"
-              }`}
-            >
-              <Package className="w-4 h-4" />
-              <span>Shared Products Master</span>
-            </button>
-          )}
+            <>
+              <div className="px-3 pt-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                Principal Configuration
+              </div>
 
-          {isSuper && (
-            <button
-              type="button"
-              onClick={() => handleTabChange("manufacturers")}
-              className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl font-semibold transition-colors text-left ${
-                activeTab === "manufacturers"
-                  ? "bg-slate-900 text-white font-bold"
-                  : "text-slate-600 hover:bg-slate-100"
-              }`}
-            >
-              <Layers className="w-4 h-4" />
-              <span>Manufacturers &amp; Logos</span>
-            </button>
-          )}
+              <button
+                type="button"
+                onClick={() => handleTabChange("manufacturers")}
+                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-semibold transition-colors text-left ${
+                  activeTab === "manufacturers"
+                    ? "bg-slate-900 text-white font-bold"
+                    : "text-slate-600 hover:bg-slate-100"
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <Layers className="w-4 h-4" />
+                  <span>Manufacturers &amp; Logos</span>
+                </div>
+                {brandsLoading && <Loader2 className="w-3.5 h-3.5 animate-spin text-teal-400 shrink-0" />}
+              </button>
 
-          {isSuper && (
-            <button
-              type="button"
-              onClick={() => handleTabChange("ingredients")}
-              className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl font-semibold transition-colors text-left ${
-                activeTab === "ingredients"
-                  ? "bg-slate-900 text-white font-bold"
-                  : "text-slate-600 hover:bg-slate-100"
-              }`}
-            >
-              <FlaskConical className="w-4 h-4" />
-              <span>Ingredients &amp; Aliases</span>
-            </button>
+              <button
+                type="button"
+                onClick={() => handleTabChange("ingredients")}
+                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-semibold transition-colors text-left ${
+                  activeTab === "ingredients"
+                    ? "bg-slate-900 text-white font-bold"
+                    : "text-slate-600 hover:bg-slate-100"
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <FlaskConical className="w-4 h-4" />
+                  <span>Active Ingredients</span>
+                </div>
+                {ingredientsLoading && <Loader2 className="w-3.5 h-3.5 animate-spin text-teal-400 shrink-0" />}
+              </button>
+            </>
           )}
 
           <div className="pt-3 border-t border-slate-100">
@@ -472,165 +740,1082 @@ export default function AdminDashboardPage() {
               }`}
             >
               {statusMessage.type === "success" ? (
-                <CheckCircle2 className="w-4 h-4 shrink-0" />
+                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
               ) : (
-                <AlertCircle className="w-4 h-4 shrink-0" />
+                <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
               )}
-              <span className="font-medium">{statusMessage.text}</span>
+              <span className="font-semibold">{statusMessage.text}</span>
             </div>
           )}
 
           {/* ============================================================ */}
-          {/* TAB 1: OVERVIEW                                             */}
+          {/* TAB 1: OVERVIEW & STATS                                      */}
           {/* ============================================================ */}
-          {activeTab === "overview" && overviewData && (
-            <div className="space-y-6">
-              <div className="space-y-1">
-                <h2 className="text-xl font-bold text-slate-900 tracking-tight">
-                  System Overview
-                </h2>
-                <p className="text-slate-500">
-                  Real-time status across L &amp; K pharmaceutical distribution network.
-                </p>
+          {activeTab === "overview" && (
+            overviewLoading || !overviewData ? (
+              <div className="space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="space-y-2">
+                    <div className="h-6 w-48 bg-slate-200 rounded-lg animate-pulse" />
+                    <div className="h-4 w-80 bg-slate-100 rounded-md animate-pulse" />
+                  </div>
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-teal-50 border border-teal-200 text-teal-700 text-xs font-semibold">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Loading distribution metrics...</span>
+                  </div>
+                </div>
+
+                {/* 4 KPI Skeletons */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs space-y-3 animate-pulse">
+                      <div className="h-3 w-28 bg-slate-200 rounded" />
+                      <div className="h-8 w-16 bg-slate-300 rounded-lg" />
+                      <div className="h-2.5 w-24 bg-slate-100 rounded" />
+                    </div>
+                  ))}
+                </div>
+
+                {/* Quick Actions Skeleton */}
+                <div className="bg-slate-800 rounded-2xl p-6 text-white space-y-3 animate-pulse">
+                  <div className="h-4 w-52 bg-slate-700 rounded" />
+                  <div className="h-3 w-3/4 bg-slate-700/60 rounded" />
+                </div>
+
+                {/* 2 Distributor Company Skeletons */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {[1, 2].map((i) => (
+                    <div key={i} className="bg-white rounded-2xl border border-slate-200 p-6 shadow-2xs space-y-4 animate-pulse">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-slate-200" />
+                        <div className="space-y-2">
+                          <div className="h-4 w-36 bg-slate-200 rounded" />
+                          <div className="h-3 w-20 bg-slate-100 rounded" />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-100">
+                        <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 space-y-2">
+                          <div className="h-2.5 w-20 bg-slate-200 rounded" />
+                          <div className="h-6 w-12 bg-slate-300 rounded" />
+                        </div>
+                        <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 space-y-2">
+                          <div className="h-2.5 w-20 bg-slate-200 rounded" />
+                          <div className="h-6 w-12 bg-slate-300 rounded" />
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 pt-2">
+                        <div className="flex-1 h-9 rounded-xl bg-slate-100" />
+                        <div className="flex-1 h-9 rounded-xl bg-slate-200" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-
-              {/* Stats Cards */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs space-y-1">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                    Master Formulations
-                  </span>
-                  <p className="text-3xl font-black text-slate-900">
-                    {overviewData.stats.totalProducts}
+            ) : (
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                    <span>Commercial Overview</span>
+                    {overviewLoading && <Loader2 className="w-4 h-4 animate-spin text-teal-600" />}
+                  </h2>
+                  <p className="text-slate-500">
+                    Real-time status across Lakshmi Pharma and The Kothittil Pharmaceutical Distributor.
                   </p>
-                  <span className="text-[10px] text-slate-500">Structured products</span>
                 </div>
 
-                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs space-y-1">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                    Manufacturers
-                  </span>
-                  <p className="text-3xl font-black text-slate-900">
-                    {overviewData.stats.totalManufacturers}
-                  </p>
-                  <span className="text-[10px] text-slate-500">Authorized partners</span>
+                {/* KPI Cards */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs">
+                    <div className="text-slate-500 font-semibold mb-1">Catalog Formulations</div>
+                    <div className="text-2xl font-black text-slate-900">
+                      {overviewData.stats.totalProducts}
+                    </div>
+                    <div className="text-[10px] text-teal-600 font-semibold mt-1">
+                      Rhine Life Sciences
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs">
+                    <div className="text-slate-500 font-semibold mb-1">Pending Inquiries</div>
+                    <div className="text-2xl font-black text-amber-600">
+                      {overviewData.stats.pendingInquiries}
+                    </div>
+                    <div className="text-[10px] text-slate-400 mt-1">Awaiting quotation review</div>
+                  </div>
+
+                  <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs">
+                    <div className="text-slate-500 font-semibold mb-1">Authorized Brands</div>
+                    <div className="text-2xl font-black text-slate-900">
+                      {overviewData.stats.totalManufacturers}
+                    </div>
+                    <div className="text-[10px] text-slate-400 mt-1">Configured per firm</div>
+                  </div>
+
+                  <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs">
+                    <div className="text-slate-500 font-semibold mb-1">Active APIs</div>
+                    <div className="text-2xl font-black text-slate-900">
+                      {overviewData.stats.totalIngredients}
+                    </div>
+                    <div className="text-[10px] text-slate-400 mt-1">Canonical compositions</div>
+                  </div>
                 </div>
 
-                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs space-y-1">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                    Canonical Ingredients
-                  </span>
-                  <p className="text-3xl font-black text-slate-900">
-                    {overviewData.stats.totalIngredients}
-                  </p>
-                  <span className="text-[10px] text-slate-500">With search aliases</span>
+                {/* Quick Actions / Configuration Card */}
+                <div className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-2xl p-6 text-white space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-bold text-sm text-teal-300 uppercase tracking-wider">
+                        Distributor Brand Scope Control
+                      </h3>
+                      <p className="text-xs text-slate-300 mt-1">
+                        Configure which brands appear on each distributor firm. Deauthorizing a brand immediately hides all its formulations and composition search results from that company.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleTabChange("brand_matrix")}
+                      className="px-4 py-2 bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold rounded-xl text-xs transition-colors shrink-0"
+                    >
+                      Configure Brand Scope
+                    </button>
+                  </div>
                 </div>
 
-                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs space-y-1">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                    Pending Inquiries
-                  </span>
-                  <p className="text-3xl font-black text-amber-600">
-                    {overviewData.stats.pendingInquiries}
-                  </p>
-                  <span className="text-[10px] text-slate-500">Awaiting review</span>
-                </div>
-              </div>
-
-              {/* Companies Cards with Edit Trigger */}
-              <div className="space-y-3">
-                <h3 className="font-bold text-sm text-slate-900">Configured Companies</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {overviewData.companies.map((c: any) => (
+                {/* Distribution Firms Status Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {overviewData.companies?.map((company: any) => (
                     <div
-                      key={c.id}
-                      className="bg-white p-5 rounded-2xl border border-slate-200 space-y-3 shadow-2xs"
+                      key={company.id}
+                      className="bg-white rounded-2xl border border-slate-200 p-6 shadow-2xs space-y-4"
                     >
                       <div className="flex items-center justify-between">
-                        <h4 className="font-bold text-sm text-slate-900">{c.name}</h4>
-                        <span
-                          className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                            c.slug === "lakshmi-pharma"
-                              ? "bg-teal-50 text-teal-800"
-                              : "bg-blue-50 text-blue-800"
-                          }`}
-                        >
-                          {c.slug === "lakshmi-pharma" ? "Teal Theme" : "Blue Theme"}
-                        </span>
-                      </div>
-
-                      <div className="space-y-1 text-slate-600 text-xs">
-                        <div className="flex items-center justify-between">
-                          <span>Published Catalog Items:</span>
-                          <span className="font-bold text-slate-900">
-                            {c._count.companyProducts}
-                          </span>
+                        <div className="flex items-center gap-3">
+                          <div
+                            className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-white text-base shadow-xs"
+                            style={{ backgroundColor: company.accentColor }}
+                          >
+                            {company.name.charAt(0)}
+                          </div>
+                          <div>
+                            <h3 className="font-bold text-sm text-slate-900">{company.name}</h3>
+                            <div className="text-slate-400 text-[11px]">/{company.slug}</div>
+                          </div>
                         </div>
-                        <div className="flex items-center justify-between">
-                          <span>Pending Inquiries:</span>
-                          <span className="font-bold text-amber-600">
-                            {c._count.inquiries}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
                         <Link
-                          href={`/${c.slug}`}
+                          href={`/${company.slug}`}
                           target="_blank"
-                          className="text-xs text-blue-600 hover:underline font-semibold"
+                          className="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors"
                         >
-                          Visit Live Portal &rarr;
+                          <ExternalLink className="w-4 h-4" />
                         </Link>
+                      </div>
 
+                      <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-100 text-xs">
+                        <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                          <div className="text-slate-400 text-[10px] uppercase font-semibold">
+                            Published Products
+                          </div>
+                          <div className="text-lg font-bold text-slate-900 mt-0.5">
+                            {company._count.companyProducts}
+                          </div>
+                        </div>
+                        <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                          <div className="text-slate-400 text-[10px] uppercase font-semibold">
+                            Pending Quotes
+                          </div>
+                          <div className="text-lg font-bold text-amber-600 mt-0.5">
+                            {company._count.inquiries}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 pt-2">
                         <button
                           type="button"
                           onClick={() => {
-                            loadCompanyProfile(c);
+                            loadCompanyProfile(company);
                             setActiveTab("company_profile");
                           }}
-                          className="inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200"
+                          className="flex-1 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 font-semibold text-slate-700 text-center transition-colors"
                         >
-                          <Edit2 className="w-3 h-3" />
-                          <span>Edit Profile</span>
+                          Edit Profile &amp; Contact
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleTabChange("products")}
+                          className="flex-1 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 font-bold text-white text-center transition-colors"
+                        >
+                          Manage Catalog
                         </button>
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
-            </div>
+            )
           )}
 
           {/* ============================================================ */}
-          {/* TAB 2: INQUIRIES MANAGEMENT                                 */}
+          {/* TAB 2: BRAND AUTHORIZATION BY FIRM (Admin Config)            */}
           {/* ============================================================ */}
-          {activeTab === "inquiries" && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
+          {activeTab === "brand_matrix" && (
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                  <h2 className="text-xl font-bold text-slate-900 tracking-tight">
-                    Wholesale Inquiries
+                  <h2 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                    <ShieldCheck className="w-6 h-6 text-teal-600" />
+                    <span>Distributor Brand Authorization &amp; Scope</span>
+                    {brandsLoading && <Loader2 className="w-4 h-4 animate-spin text-teal-600 ml-1" />}
                   </h2>
-                  <p className="text-slate-500">
-                    Incoming B2B purchase requests, quote inquiries, and pharmacy orders.
+                  <p className="text-slate-500 mt-1">
+                    Configure which distribution firm carries each pharmaceutical brand. When a brand is disabled for a company, its products are immediately hidden from that firm&apos;s catalog, brand listings, and composition searches.
                   </p>
                 </div>
                 <button
                   type="button"
-                  onClick={loadInquiries}
-                  className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 font-semibold"
+                  disabled={brandsLoading}
+                  onClick={loadManufacturers}
+                  className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 font-semibold disabled:opacity-50 transition-colors flex items-center gap-1.5 self-start sm:self-auto shrink-0"
                 >
-                  Refresh
+                  {brandsLoading && <Loader2 className="w-3.5 h-3.5 animate-spin text-teal-600" />}
+                  <span>{brandsLoading ? "Refreshing..." : "Refresh Scope"}</span>
                 </button>
               </div>
 
-              {inquiries.length === 0 ? (
-                <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center text-slate-500">
-                  No inquiries recorded yet.
+              {/* Informational Guidance Alert */}
+              <div className="bg-teal-50 border border-teal-200 rounded-2xl p-4 flex items-start gap-3 text-teal-900">
+                <AlertCircle className="w-5 h-5 text-teal-600 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <div className="font-bold text-xs">Strict Search &amp; Catalog Isolation</div>
+                  <div className="text-[11px] text-teal-800 leading-relaxed">
+                    Example: If <strong>Rhine Life Sciences</strong> is disabled for <strong>Lakshmi Pharma</strong>, searching for active compositions like <em>&quot;Bisoprolol&quot;</em> or <em>&quot;Paracetamol&quot;</em> on Lakshmi Pharma will strictly return <strong>zero Rhine products</strong>. On The Kothittil Pharma (where Rhine is enabled), those products will continue to be found.
+                  </div>
                 </div>
-              ) : (
-                <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-2xs">
+              </div>
+
+              {/* Brand Authorization Cards */}
+              <div className="space-y-4">
+                {brandsLoading && manufacturers.length === 0 ? (
+                  <div className="space-y-4">
+                    {[1, 2].map((i) => (
+                      <div
+                        key={i}
+                        className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden animate-pulse"
+                      >
+                        <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                          <div className="flex items-center gap-3">
+                            <div className="h-10 w-28 bg-slate-200 rounded-xl" />
+                            <div className="space-y-2">
+                              <div className="h-4 w-44 bg-slate-200 rounded" />
+                              <div className="h-3 w-28 bg-slate-100 rounded" />
+                            </div>
+                          </div>
+                        </div>
+                        <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="p-4 rounded-xl border border-slate-200 bg-slate-50 space-y-3">
+                            <div className="flex items-center justify-between">
+                              <div className="h-4 w-32 bg-slate-200 rounded" />
+                              <div className="h-5 w-24 bg-slate-200 rounded-full" />
+                            </div>
+                            <div className="h-3 w-full bg-slate-100 rounded" />
+                            <div className="h-8 w-36 bg-slate-200 rounded-xl mt-3" />
+                          </div>
+                          <div className="p-4 rounded-xl border border-slate-200 bg-slate-50 space-y-3">
+                            <div className="flex items-center justify-between">
+                              <div className="h-4 w-32 bg-slate-200 rounded" />
+                              <div className="h-5 w-24 bg-slate-200 rounded-full" />
+                            </div>
+                            <div className="h-3 w-full bg-slate-100 rounded" />
+                            <div className="h-8 w-36 bg-slate-200 rounded-xl mt-3" />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : manufacturers.length === 0 ? (
+                  <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center text-slate-500">
+                    No manufacturers loaded.
+                  </div>
+                ) : (
+                  manufacturers.map((mfg) => {
+                    const lakshmiCompany = overviewData?.companies?.find(
+                      (c: any) => c.slug === "lakshmi-pharma"
+                    );
+                    const kothittilCompany = overviewData?.companies?.find(
+                      (c: any) => c.slug === "kothittil-pharma"
+                    );
+
+                    // Find authorization records
+                    const lakshmiCm = companyManufacturers.find(
+                      (cm: any) =>
+                        cm.companyId === lakshmiCompany?.id && cm.manufacturerId === mfg.id
+                    );
+                    const kothittilCm = companyManufacturers.find(
+                      (cm: any) =>
+                        cm.companyId === kothittilCompany?.id && cm.manufacturerId === mfg.id
+                    );
+
+                    const isLakshmiAuth = lakshmiCm ? lakshmiCm.isAuthorized : true;
+                    const isKothittilAuth = kothittilCm ? kothittilCm.isAuthorized : true;
+
+                    const isLakshmiUpdating = lakshmiCompany && actionLoadingKey === `auth:${lakshmiCompany.id}:${mfg.id}`;
+                    const isKothittilUpdating = kothittilCompany && actionLoadingKey === `auth:${kothittilCompany.id}:${mfg.id}`;
+
+                    return (
+                      <div
+                        key={mfg.id}
+                        className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden"
+                      >
+                        <div className="p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50/50">
+                          <div className="flex items-center gap-3">
+                            <ManufacturerLogo
+                              logoUrl={mfg.logoUrl}
+                              name={mfg.name}
+                              className="h-10 px-3 bg-white border border-slate-200 rounded-xl"
+                            />
+                            <div>
+                              <h3 className="font-bold text-sm text-slate-900">{mfg.name}</h3>
+                              <div className="text-[11px] text-slate-500">
+                                {mfg._count?.products || 43} Shared Formulations • {mfg.slug}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            {mfg.website && (
+                              <a
+                                href={mfg.website}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-[11px] text-slate-600 font-medium"
+                              >
+                                <span>Official Website</span>
+                                <ExternalLink className="w-3 h-3" />
+                              </a>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Distributor Authorization Switches */}
+                        <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {/* Lakshmi Pharma Configuration Card */}
+                          {lakshmiCompany && (
+                            <div
+                              className={`p-4 rounded-xl border transition-all ${
+                                isLakshmiAuth
+                                  ? "bg-emerald-50/40 border-emerald-200"
+                                  : "bg-slate-50 border-slate-200 opacity-80"
+                              }`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <div
+                                    className="w-3 h-3 rounded-full"
+                                    style={{ backgroundColor: lakshmiCompany.accentColor }}
+                                  />
+                                  <span className="font-bold text-slate-900">
+                                    {lakshmiCompany.name}
+                                  </span>
+                                </div>
+
+                                <span
+                                  className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                    isLakshmiAuth
+                                      ? "bg-emerald-100 text-emerald-800"
+                                      : "bg-rose-100 text-rose-800"
+                                  }`}
+                                >
+                                  {isLakshmiAuth ? "Catalog Enabled ✓" : "Hidden from Firm ✗"}
+                                </span>
+                              </div>
+
+                              <p className="text-[11px] text-slate-500 mt-2">
+                                {isLakshmiAuth
+                                  ? "Products and composition search results are currently active on Lakshmi Pharma."
+                                  : "Rhine formulations and composition search matches are strictly HIDDEN on Lakshmi Pharma."}
+                              </p>
+
+                              <div className="mt-4 pt-3 border-t border-slate-200/60 flex items-center justify-between">
+                                <span className="text-[11px] font-semibold text-slate-700">
+                                  Distribution Status:
+                                </span>
+                                <button
+                                  type="button"
+                                  disabled={Boolean(isLakshmiUpdating)}
+                                  onClick={() =>
+                                    handleToggleBrandAuth(lakshmiCompany.id, mfg.id, isLakshmiAuth)
+                                  }
+                                  className={`px-3 py-1.5 rounded-xl font-bold text-xs transition-colors flex items-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed ${
+                                    isLakshmiAuth
+                                      ? "bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-100"
+                                      : "bg-emerald-600 text-white hover:bg-emerald-500"
+                                  }`}
+                                >
+                                  {isLakshmiUpdating ? (
+                                    <>
+                                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                      <span>Updating Scope...</span>
+                                    </>
+                                  ) : isLakshmiAuth ? (
+                                    <>
+                                      <EyeOff className="w-3.5 h-3.5" />
+                                      <span>Disable for Lakshmi</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Eye className="w-3.5 h-3.5" />
+                                      <span>Enable for Lakshmi</span>
+                                    </>
+                                  )}
+                                </button>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Kothittil Pharma Configuration Card */}
+                          {kothittilCompany && (
+                            <div
+                              className={`p-4 rounded-xl border transition-all ${
+                                isKothittilAuth
+                                  ? "bg-blue-50/40 border-blue-200"
+                                  : "bg-slate-50 border-slate-200 opacity-80"
+                              }`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <div
+                                    className="w-3 h-3 rounded-full"
+                                    style={{ backgroundColor: kothittilCompany.accentColor }}
+                                  />
+                                  <span className="font-bold text-slate-900">
+                                    {kothittilCompany.name}
+                                  </span>
+                                </div>
+
+                                <span
+                                  className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                    isKothittilAuth
+                                      ? "bg-blue-100 text-blue-800"
+                                      : "bg-rose-100 text-rose-800"
+                                  }`}
+                                >
+                                  {isKothittilAuth ? "Catalog Enabled ✓" : "Hidden from Firm ✗"}
+                                </span>
+                              </div>
+
+                              <p className="text-[11px] text-slate-500 mt-2">
+                                {isKothittilAuth
+                                  ? "Products and composition search results are currently active on Kothittil Pharma."
+                                  : "Rhine formulations and composition search matches are strictly HIDDEN on Kothittil Pharma."}
+                              </p>
+
+                              <div className="mt-4 pt-3 border-t border-slate-200/60 flex items-center justify-between">
+                                <span className="text-[11px] font-semibold text-slate-700">
+                                  Distribution Status:
+                                </span>
+                                <button
+                                  type="button"
+                                  disabled={Boolean(isKothittilUpdating)}
+                                  onClick={() =>
+                                    handleToggleBrandAuth(
+                                      kothittilCompany.id,
+                                      mfg.id,
+                                      isKothittilAuth
+                                    )
+                                  }
+                                  className={`px-3 py-1.5 rounded-xl font-bold text-xs transition-colors flex items-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed ${
+                                    isKothittilAuth
+                                      ? "bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-100"
+                                      : "bg-blue-600 text-white hover:bg-blue-500"
+                                  }`}
+                                >
+                                  {isKothittilUpdating ? (
+                                    <>
+                                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                      <span>Updating Scope...</span>
+                                    </>
+                                  ) : isKothittilAuth ? (
+                                    <>
+                                      <EyeOff className="w-3.5 h-3.5" />
+                                      <span>Disable for Kothittil</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Eye className="w-3.5 h-3.5" />
+                                      <span>Enable for Kothittil</span>
+                                    </>
+                                  )}
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ============================================================ */}
+          {/* TAB 3: PRODUCTS & CATALOG MANAGEMENT (With Product Edit)    */}
+          {/* ============================================================ */}
+          {activeTab === "products" && (
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-900 tracking-tight">
+                    Product Formulations &amp; Scoping
+                  </h2>
+                  <p className="text-slate-500">
+                    View, search, edit product master records, and manage company catalog listings.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={productsLoading}
+                    onClick={() => loadProducts(productPage, productSearch, productDosageFilter, productLimit)}
+                    className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 font-semibold disabled:opacity-50 transition-colors flex items-center gap-1.5"
+                  >
+                    {productsLoading && <Loader2 className="w-3.5 h-3.5 animate-spin text-teal-600" />}
+                    <span>{productsLoading ? "Refreshing..." : "Refresh List"}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Search & Filters */}
+              <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs flex flex-col sm:flex-row gap-3">
+                <div className="relative flex-1">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                  <input
+                    type="text"
+                    value={productSearch}
+                    onChange={(e) => setProductSearch(e.target.value)}
+                    placeholder="Search by product name, dosage form, packaging, active ingredient..."
+                    className="w-full h-9 pl-9 pr-3 rounded-lg border border-slate-200 text-xs text-slate-900 placeholder:text-slate-400"
+                  />
+                  {productSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setProductSearch("")}
+                      className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-[11px] text-slate-500 font-semibold">Dosage:</span>
+                  <select
+                    value={productDosageFilter}
+                    onChange={(e) => setProductDosageFilter(e.target.value)}
+                    className="h-9 px-3 rounded-lg border border-slate-200 text-xs text-slate-800 bg-white"
+                  >
+                    <option value="ALL">All Dosage Forms</option>
+                    <option value="Tablet">Tablets</option>
+                    <option value="Capsule">Capsules</option>
+                    <option value="Syrup">Syrups</option>
+                    <option value="Suspension">Suspensions</option>
+                    <option value="Injection">Injections</option>
+                    <option value="Ointment">Ointments / Gels</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Products Table */}
+              <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-2xs relative">
+                {/* Active Loading Overlay during pagination / debounced search */}
+                {productsLoading && filteredProducts.length > 0 && (
+                  <div className="absolute inset-0 bg-white/70 backdrop-blur-2xs flex items-center justify-center z-10 transition-opacity">
+                    <div className="px-4 py-2.5 rounded-xl bg-slate-900 text-white flex items-center gap-2.5 shadow-lg border border-slate-800">
+                      <Loader2 className="w-4 h-4 animate-spin text-teal-400" />
+                      <span className="font-semibold text-xs">Updating catalog formulations...</span>
+                    </div>
+                  </div>
+                )}
+
+                <div className="overflow-x-auto min-h-[300px]">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 uppercase text-[10px] font-bold tracking-wider">
+                        <th className="py-3 px-4">Product Name &amp; Pack</th>
+                        <th className="py-3 px-4">Brand / Manufacturer</th>
+                        <th className="py-3 px-4">Composition</th>
+                        <th className="py-3 px-4 text-center">Lakshmi Pharma</th>
+                        <th className="py-3 px-4 text-center">The Kothittil</th>
+                        <th className="py-3 px-4 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {productsLoading && filteredProducts.length === 0 ? (
+                        Array.from({ length: 8 }).map((_, idx) => (
+                          <tr key={idx} className="animate-pulse">
+                            <td className="py-3.5 px-4">
+                              <div className="h-4 w-44 bg-slate-200 rounded mb-1.5" />
+                              <div className="h-3 w-28 bg-slate-100 rounded" />
+                            </td>
+                            <td className="py-3.5 px-4">
+                              <div className="h-4 w-32 bg-slate-200 rounded" />
+                            </td>
+                            <td className="py-3.5 px-4">
+                              <div className="flex gap-1.5">
+                                <div className="h-4 w-16 bg-slate-200 rounded" />
+                                <div className="h-4 w-16 bg-slate-200 rounded" />
+                              </div>
+                            </td>
+                            <td className="py-3.5 px-4 text-center">
+                              <div className="h-6 w-16 bg-slate-200 rounded-full mx-auto" />
+                            </td>
+                            <td className="py-3.5 px-4 text-center">
+                              <div className="h-6 w-16 bg-slate-200 rounded-full mx-auto" />
+                            </td>
+                            <td className="py-3.5 px-4 text-right">
+                              <div className="h-6 w-12 bg-slate-200 rounded ml-auto" />
+                            </td>
+                          </tr>
+                        ))
+                      ) : filteredProducts.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="py-8 text-center text-slate-400">
+                            No products match your search query.
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredProducts.map((prod) => {
+                          const lakshmiListing = prod.companyProducts?.find(
+                            (cp: any) => cp.company?.slug === "lakshmi-pharma"
+                          );
+                          const kothittilListing = prod.companyProducts?.find(
+                            (cp: any) => cp.company?.slug === "kothittil-pharma"
+                          );
+
+                          const lakshmiCompany = overviewData?.companies?.find(
+                            (c: any) => c.slug === "lakshmi-pharma"
+                          );
+                          const kothittilCompany = overviewData?.companies?.find(
+                            (c: any) => c.slug === "kothittil-pharma"
+                          );
+
+                          const isLakshmiListingUpdating =
+                            lakshmiCompany &&
+                            actionLoadingKey === `listing:${lakshmiCompany.id}:${prod.id}:isPublished`;
+                          const isKothittilListingUpdating =
+                            kothittilCompany &&
+                            actionLoadingKey === `listing:${kothittilCompany.id}:${prod.id}:isPublished`;
+
+                          return (
+                            <tr key={prod.id} className="hover:bg-slate-50/80 transition-colors">
+                              <td className="py-3 px-4 align-top">
+                                <div className="font-bold text-slate-900">{prod.name}</div>
+                                <div className="text-[10px] text-slate-400 mt-0.5">
+                                  {prod.dosageForm} • {prod.packaging}
+                                </div>
+                                {prod.schedule && (
+                                  <span className="inline-block mt-1 px-1.5 py-0.5 rounded text-[9px] font-mono bg-rose-50 text-rose-700 border border-rose-200">
+                                    {prod.schedule}
+                                  </span>
+                                )}
+                              </td>
+
+                              <td className="py-3 px-4 align-top font-semibold text-slate-700">
+                                {prod.manufacturer?.name}
+                              </td>
+
+                              <td className="py-3 px-4 align-top">
+                                <div className="flex flex-wrap gap-1 max-w-xs">
+                                  {prod.ingredients?.map((i: any) => (
+                                    <span
+                                      key={i.id}
+                                      className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 font-mono text-[10px]"
+                                    >
+                                      {i.ingredient?.name} {i.quantity} {i.unit}
+                                    </span>
+                                  ))}
+                                </div>
+                              </td>
+
+                              {/* Lakshmi Listing Toggle */}
+                              <td className="py-3 px-4 align-top text-center">
+                                {lakshmiCompany && (
+                                  <button
+                                    type="button"
+                                    disabled={Boolean(isLakshmiListingUpdating)}
+                                    onClick={() =>
+                                      handleToggleListing(
+                                        lakshmiCompany.id,
+                                        prod.id,
+                                        "isPublished",
+                                        Boolean(lakshmiListing?.isPublished)
+                                      )
+                                    }
+                                    className={`px-2.5 py-1 rounded-full text-[10px] font-bold border transition-colors inline-flex items-center gap-1 disabled:opacity-60 disabled:cursor-not-allowed ${
+                                      lakshmiListing?.isPublished
+                                        ? "bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100"
+                                        : "bg-slate-100 text-slate-400 border-slate-200 hover:bg-slate-200"
+                                    }`}
+                                  >
+                                    {isLakshmiListingUpdating && (
+                                      <Loader2 className="w-3 h-3 animate-spin" />
+                                    )}
+                                    <span>{lakshmiListing?.isPublished ? "Listed ✓" : "Unlisted ✗"}</span>
+                                  </button>
+                                )}
+                              </td>
+
+                              {/* Kothittil Listing Toggle */}
+                              <td className="py-3 px-4 align-top text-center">
+                                {kothittilCompany && (
+                                  <button
+                                    type="button"
+                                    disabled={Boolean(isKothittilListingUpdating)}
+                                    onClick={() =>
+                                      handleToggleListing(
+                                        kothittilCompany.id,
+                                        prod.id,
+                                        "isPublished",
+                                        Boolean(kothittilListing?.isPublished)
+                                      )
+                                    }
+                                    className={`px-2.5 py-1 rounded-full text-[10px] font-bold border transition-colors inline-flex items-center gap-1 disabled:opacity-60 disabled:cursor-not-allowed ${
+                                      kothittilListing?.isPublished
+                                        ? "bg-blue-50 text-blue-800 border-blue-300 hover:bg-blue-100"
+                                        : "bg-slate-100 text-slate-400 border-slate-200 hover:bg-slate-200"
+                                    }`}
+                                  >
+                                    {isKothittilListingUpdating && (
+                                      <Loader2 className="w-3 h-3 animate-spin" />
+                                    )}
+                                    <span>{kothittilListing?.isPublished ? "Listed ✓" : "Unlisted ✗"}</span>
+                                  </button>
+                                )}
+                              </td>
+
+                              {/* Actions Column */}
+                              <td className="py-3 px-4 align-top text-right">
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenEditProduct(prod)}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-900 text-white hover:bg-slate-800 font-semibold shadow-2xs transition-colors"
+                                >
+                                  <Edit2 className="w-3 h-3" />
+                                  <span>Edit</span>
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Server-Side Pagination Bar */}
+                <div className="p-4 border-t border-slate-200 bg-slate-50/70 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-600">
+                  <div className="flex items-center gap-2">
+                    <span>
+                      Showing {productPagination.total === 0 ? 0 : (productPage - 1) * productLimit + 1} to{" "}
+                      {Math.min(productPage * productLimit, productPagination.total)} of{" "}
+                      <strong className="text-slate-900">{productPagination.total}</strong> products
+                    </span>
+                    <select
+                      value={productLimit}
+                      onChange={(e) => {
+                        const newLimit = parseInt(e.target.value, 10);
+                        setProductLimit(newLimit);
+                        setProductPage(1);
+                        loadProducts(1, productSearch, productDosageFilter, newLimit);
+                      }}
+                      className="h-8 px-2 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700"
+                    >
+                      <option value={25}>25 / page</option>
+                      <option value={50}>50 / page</option>
+                      <option value={100}>100 / page</option>
+                    </select>
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      disabled={productPage <= 1 || productsLoading}
+                      onClick={() => {
+                        const newP = productPage - 1;
+                        setProductPage(newP);
+                        loadProducts(newP, productSearch, productDosageFilter, productLimit);
+                      }}
+                      className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    >
+                      Previous
+                    </button>
+
+                    <span className="px-2 font-semibold text-slate-700">
+                      Page {productPage} of {productPagination.totalPages}
+                    </span>
+
+                    <button
+                      type="button"
+                      disabled={productPage >= productPagination.totalPages || productsLoading}
+                      onClick={() => {
+                        const newP = productPage + 1;
+                        setProductPage(newP);
+                        loadProducts(newP, productSearch, productDosageFilter, productLimit);
+                      }}
+                      className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* ============================================================ */}
+              {/* PRODUCT EDIT MODAL                                           */}
+              {/* ============================================================ */}
+              {editingProduct && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+                  <div className="bg-white rounded-2xl max-w-2xl w-full p-6 space-y-4 shadow-xl border border-slate-200 max-h-[90vh] overflow-y-auto">
+                    <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                      <div>
+                        <h3 className="font-bold text-sm text-slate-900">
+                          Edit Formulation: {editingProduct.name}
+                        </h3>
+                        <p className="text-[11px] text-slate-500">
+                          Update product master details, dosage form, packaging, and regulatory schedule.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setEditingProduct(null)}
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    <form onSubmit={handleSaveProduct} className="space-y-4 text-xs">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                          <label className="font-semibold text-slate-700 block">
+                            Brand / Product Name <span className="text-rose-500">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={productForm.name}
+                            onChange={(e) =>
+                              setProductForm({ ...productForm, name: e.target.value })
+                            }
+                            className="w-full h-9 px-3 rounded-lg border border-slate-300 text-slate-900 font-bold"
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="font-semibold text-slate-700 block">
+                            Dosage Form <span className="text-rose-500">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={productForm.dosageForm}
+                            onChange={(e) =>
+                              setProductForm({ ...productForm, dosageForm: e.target.value })
+                            }
+                            placeholder="Tablet / Capsule / Syrup / Injection"
+                            className="w-full h-9 px-3 rounded-lg border border-slate-300 text-slate-900"
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="font-semibold text-slate-700 block">
+                            Commercial Packaging <span className="text-rose-500">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={productForm.packaging}
+                            onChange={(e) =>
+                              setProductForm({ ...productForm, packaging: e.target.value })
+                            }
+                            placeholder="e.g. 10x10 Alu-Alu / 100ml Bottle"
+                            className="w-full h-9 px-3 rounded-lg border border-slate-300 text-slate-900"
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="font-semibold text-slate-700 block">
+                            Regulatory Schedule
+                          </label>
+                          <input
+                            type="text"
+                            value={productForm.schedule}
+                            onChange={(e) =>
+                              setProductForm({ ...productForm, schedule: e.target.value })
+                            }
+                            placeholder="e.g. Schedule H Prescription Drug"
+                            className="w-full h-9 px-3 rounded-lg border border-slate-300 text-slate-900"
+                          />
+                        </div>
+
+                        <div className="sm:col-span-2 space-y-1">
+                          <label className="font-semibold text-slate-700 block">
+                            Storage Conditions
+                          </label>
+                          <input
+                            type="text"
+                            value={productForm.storageConditions}
+                            onChange={(e) =>
+                              setProductForm({ ...productForm, storageConditions: e.target.value })
+                            }
+                            placeholder="e.g. Store below 25°C in a dry place. Protect from direct light."
+                            className="w-full h-9 px-3 rounded-lg border border-slate-300 text-slate-900"
+                          />
+                        </div>
+
+                        <div className="sm:col-span-2 space-y-1">
+                          <label className="font-semibold text-slate-700 block">
+                            Clinical Indications / Description
+                          </label>
+                          <textarea
+                            rows={3}
+                            value={productForm.description}
+                            onChange={(e) =>
+                              setProductForm({ ...productForm, description: e.target.value })
+                            }
+                            placeholder="Therapeutic classification, indications, B2B wholesale remarks..."
+                            className="w-full p-2.5 rounded-lg border border-slate-300 text-slate-900"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Active Ingredients Display */}
+                      <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/80 space-y-2">
+                        <div className="font-bold text-slate-800 text-[11px] uppercase tracking-wider">
+                          Active Pharmaceutical Ingredients (Fixed Formulation)
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {editingProduct.ingredients?.map((i: any) => (
+                            <span
+                              key={i.id}
+                              className="px-2 py-1 rounded-md bg-white border border-slate-200 text-slate-800 font-mono text-[11px]"
+                            >
+                              {i.ingredient?.name} {i.quantity} {i.unit} ({i.perBasis})
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Modal Footer */}
+                      <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                        <button
+                          type="button"
+                          onClick={() => setEditingProduct(null)}
+                          className="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 font-semibold"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={savingProduct}
+                          className="px-5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold flex items-center gap-1.5 disabled:opacity-50"
+                        >
+                          {savingProduct ? (
+                            <>
+                              <Loader2 className="w-3.5 h-3.5 animate-spin text-teal-400" />
+                              <span>Saving Changes...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Save className="w-3.5 h-3.5" />
+                              <span>Save Changes</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ============================================================ */}
+          {/* TAB 4: WHOLESALE INQUIRIES MANAGEMENT                         */}
+          {/* ============================================================ */}
+          {activeTab === "inquiries" && (
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                    <span>Wholesale Inquiries &amp; Orders</span>
+                    {inquiriesLoading && <Loader2 className="w-4 h-4 animate-spin text-teal-600" />}
+                  </h2>
+                  <p className="text-slate-500">
+                    Review incoming B2B purchase requests, quote inquiries, and customer pharmacy contacts.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  disabled={inquiriesLoading}
+                  onClick={loadInquiries}
+                  className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 font-semibold shrink-0 flex items-center gap-1.5 disabled:opacity-50 transition-colors"
+                >
+                  {inquiriesLoading && <Loader2 className="w-3.5 h-3.5 animate-spin text-teal-600" />}
+                  <span>{inquiriesLoading ? "Refreshing..." : "Refresh Inquiries"}</span>
+                </button>
+              </div>
+
+              {/* Inquiries Filters */}
+              <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs flex flex-col sm:flex-row gap-3">
+                <div className="relative flex-1">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                  <input
+                    type="text"
+                    value={inquirySearch}
+                    onChange={(e) => setInquirySearch(e.target.value)}
+                    placeholder="Search by pharmacy name, buyer name, phone, or product..."
+                    className="w-full h-9 pl-9 pr-3 rounded-lg border border-slate-200 text-xs text-slate-900"
+                  />
+                  {inquirySearch && (
+                    <button
+                      type="button"
+                      onClick={() => setInquirySearch("")}
+                      className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-[11px] text-slate-500 font-semibold">Status:</span>
+                  <select
+                    value={inquiryStatusFilter}
+                    onChange={(e) => setInquiryStatusFilter(e.target.value)}
+                    className="h-9 px-3 rounded-lg border border-slate-200 text-xs text-slate-800 bg-white"
+                  >
+                    <option value="ALL">All Inquiries</option>
+                    <option value="PENDING">PENDING (New)</option>
+                    <option value="IN_REVIEW">IN_REVIEW</option>
+                    <option value="RESPONDED">RESPONDED</option>
+                    <option value="CLOSED">CLOSED</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-2xs relative">
+                {/* Active Loading Overlay */}
+                {inquiriesLoading && inquiries.length > 0 && (
+                  <div className="absolute inset-0 bg-white/70 backdrop-blur-2xs flex items-center justify-center z-10 transition-opacity">
+                    <div className="px-4 py-2.5 rounded-xl bg-slate-900 text-white flex items-center gap-2.5 shadow-lg border border-slate-800">
+                      <Loader2 className="w-4 h-4 animate-spin text-teal-400" />
+                      <span className="font-semibold text-xs">Updating wholesale inquiries...</span>
+                    </div>
+                  </div>
+                )}
+
+                <div className="overflow-x-auto min-h-[220px]">
                   <table className="w-full text-left border-collapse text-xs">
                     <thead>
                       <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 uppercase text-[10px] font-bold tracking-wider">
@@ -643,109 +1828,171 @@ export default function AdminDashboardPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                      {inquiries.map((inq) => (
-                        <tr key={inq.id} className="hover:bg-slate-50">
-                          <td className="py-3 px-4 font-mono text-[11px] text-slate-500">
-                            {new Date(inq.createdAt).toLocaleDateString()}
-                          </td>
-                          <td className="py-3 px-4 font-semibold text-slate-800">
-                            {inq.company.name}
-                          </td>
-                          <td className="py-3 px-4">
-                            <div className="font-bold text-slate-900">{inq.businessName}</div>
-                            <div className="text-[11px] text-slate-500">
-                              {inq.name} • {inq.phone}
-                            </div>
-                          </td>
-                          <td className="py-3 px-4">
-                            {inq.product ? (
-                              <span className="font-semibold text-slate-800">
-                                {inq.product.name} ({inq.product.packaging})
-                              </span>
-                            ) : (
-                              <span className="text-slate-400">General Catalog Inquiry</span>
-                            )}
-                          </td>
-                          <td className="py-3 px-4">
-                            <span
-                              className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                                inq.status === "PENDING"
-                                  ? "bg-amber-50 text-amber-800 border border-amber-200"
-                                  : inq.status === "IN_REVIEW"
-                                  ? "bg-blue-50 text-blue-800 border border-blue-200"
-                                  : inq.status === "RESPONDED"
-                                  ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
-                                  : "bg-slate-100 text-slate-700"
-                              }`}
-                            >
-                              {inq.status}
-                            </span>
-                          </td>
-                          <td className="py-3 px-4 text-right">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setSelectedInquiry(inq);
-                                setInquiryStatus(inq.status);
-                                setInquiryNotes(inq.adminNotes || "");
-                              }}
-                              className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold"
-                            >
-                              Review &amp; Update
-                            </button>
+                      {inquiriesLoading && inquiries.length === 0 ? (
+                        Array.from({ length: 5 }).map((_, idx) => (
+                          <tr key={idx} className="animate-pulse">
+                            <td className="py-3.5 px-4">
+                              <div className="h-3.5 w-20 bg-slate-200 rounded" />
+                            </td>
+                            <td className="py-3.5 px-4">
+                              <div className="h-4 w-28 bg-slate-200 rounded" />
+                            </td>
+                            <td className="py-3.5 px-4">
+                              <div className="h-4 w-36 bg-slate-200 rounded mb-1" />
+                              <div className="h-3 w-24 bg-slate-100 rounded" />
+                            </td>
+                            <td className="py-3.5 px-4">
+                              <div className="h-4 w-32 bg-slate-200 rounded" />
+                            </td>
+                            <td className="py-3.5 px-4">
+                              <div className="h-5 w-16 bg-slate-200 rounded-full" />
+                            </td>
+                            <td className="py-3.5 px-4 text-right">
+                              <div className="h-6 w-24 bg-slate-200 rounded ml-auto" />
+                            </td>
+                          </tr>
+                        ))
+                      ) : filteredInquiries.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="py-12 text-center text-slate-400">
+                            No inquiries match the current filter.
                           </td>
                         </tr>
-                      ))}
+                      ) : (
+                        filteredInquiries.map((inq) => (
+                          <tr key={inq.id} className="hover:bg-slate-50/80 transition-colors">
+                            <td className="py-3 px-4 font-mono text-[11px] text-slate-500">
+                              {new Date(inq.createdAt).toLocaleDateString()}
+                            </td>
+                            <td className="py-3 px-4 font-semibold text-slate-800">
+                              {inq.company?.name}
+                            </td>
+                            <td className="py-3 px-4">
+                              <div className="font-bold text-slate-900">{inq.businessName}</div>
+                              <div className="text-[11px] text-slate-500">
+                                {inq.name} • {inq.phone}
+                              </div>
+                            </td>
+                            <td className="py-3 px-4">
+                              {inq.product ? (
+                                <span className="font-semibold text-slate-800">
+                                  {inq.product.name} ({inq.product.packaging})
+                                </span>
+                              ) : (
+                                <span className="text-slate-400">General Catalog Inquiry</span>
+                              )}
+                            </td>
+                            <td className="py-3 px-4">
+                              <span
+                                className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                  inq.status === "PENDING"
+                                    ? "bg-amber-50 text-amber-800 border border-amber-200"
+                                    : inq.status === "IN_REVIEW"
+                                    ? "bg-blue-50 text-blue-800 border border-blue-200"
+                                    : inq.status === "RESPONDED"
+                                    ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                                    : "bg-slate-100 text-slate-700"
+                                }`}
+                              >
+                                {inq.status}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-right">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedInquiry(inq);
+                                  setInquiryStatus(inq.status);
+                                  setInquiryNotes(inq.adminNotes || "");
+                                }}
+                                className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-semibold transition-colors"
+                              >
+                                Review &amp; Respond
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>
-              )}
+              </div>
 
               {/* Inquiry Edit Modal */}
               {selectedInquiry && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
                   <div className="bg-white rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-xl border border-slate-200">
                     <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                      <h3 className="font-bold text-sm text-slate-900">
-                        Inquiry Details: {selectedInquiry.businessName}
-                      </h3>
+                      <div>
+                        <h3 className="font-bold text-sm text-slate-900">
+                          Inquiry: {selectedInquiry.businessName}
+                        </h3>
+                        <div className="text-[11px] text-slate-400">
+                          Received on {new Date(selectedInquiry.createdAt).toLocaleString()}
+                        </div>
+                      </div>
                       <button
                         type="button"
                         onClick={() => setSelectedInquiry(null)}
-                        className="p-1 rounded-md text-slate-400 hover:text-slate-600"
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100"
                       >
                         <X className="w-4 h-4" />
                       </button>
                     </div>
 
                     <div className="space-y-2 text-xs bg-slate-50 p-4 rounded-xl border border-slate-100">
-                      <div>
-                        <strong>Buyer:</strong> {selectedInquiry.name} ({selectedInquiry.phone})
-                      </div>
-                      {selectedInquiry.email && (
+                      <div className="flex items-center justify-between">
                         <div>
-                          <strong>Email:</strong> {selectedInquiry.email}
+                          <strong>Buyer:</strong> {selectedInquiry.name}
+                        </div>
+                        <a
+                          href={`tel:${selectedInquiry.phone}`}
+                          className="inline-flex items-center gap-1 text-teal-700 hover:underline font-semibold"
+                        >
+                          <Phone className="w-3 h-3" />
+                          <span>{selectedInquiry.phone}</span>
+                        </a>
+                      </div>
+
+                      {selectedInquiry.email && (
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <strong>Email:</strong> {selectedInquiry.email}
+                          </div>
+                          <a
+                            href={`mailto:${selectedInquiry.email}`}
+                            className="inline-flex items-center gap-1 text-teal-700 hover:underline font-semibold"
+                          >
+                            <Mail className="w-3 h-3" />
+                            <span>Send Email</span>
+                          </a>
                         </div>
                       )}
+
                       <div>
-                        <strong>Assigned Company:</strong> {selectedInquiry.company.name}
+                        <strong>Assigned Distributor:</strong> {selectedInquiry.company?.name}
                       </div>
+
                       {selectedInquiry.product && (
                         <div>
-                          <strong>Referenced Product:</strong> {selectedInquiry.product.name}
+                          <strong>Referenced Product:</strong> {selectedInquiry.product.name} (
+                          {selectedInquiry.product.packaging})
                         </div>
                       )}
+
                       <div className="pt-2 border-t border-slate-200/80">
                         <strong className="block text-slate-400 text-[10px] uppercase">
-                          Message:
+                          Buyer Message / Order Specs:
                         </strong>
-                        <p className="text-slate-800 italic mt-0.5">{selectedInquiry.message}</p>
+                        <p className="text-slate-800 italic mt-1 bg-white p-2.5 rounded-lg border border-slate-200">
+                          &quot;{selectedInquiry.message}&quot;
+                        </p>
                       </div>
                     </div>
 
                     <div className="space-y-3 pt-2">
                       <div className="space-y-1">
-                        <label className="font-semibold text-slate-700 block">Status</label>
+                        <label className="font-semibold text-slate-700 block">Inquiry Status</label>
                         <select
                           value={inquiryStatus}
                           onChange={(e) => setInquiryStatus(e.target.value)}
@@ -772,20 +2019,28 @@ export default function AdminDashboardPage() {
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-end gap-2 pt-3">
+                    <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
                       <button
                         type="button"
                         onClick={() => setSelectedInquiry(null)}
-                        className="px-4 py-2 rounded-lg text-slate-600 hover:bg-slate-100"
+                        className="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 font-semibold"
                       >
                         Cancel
                       </button>
                       <button
                         type="button"
+                        disabled={updatingInquiry}
                         onClick={handleUpdateInquiry}
-                        className="px-4 py-2 rounded-lg text-white bg-slate-900 hover:bg-slate-800 font-bold"
+                        className="px-5 py-2 rounded-xl text-white bg-slate-900 hover:bg-slate-800 font-bold flex items-center gap-1.5 disabled:opacity-50"
                       >
-                        Save Changes
+                        {updatingInquiry ? (
+                          <>
+                            <Loader2 className="w-3.5 h-3.5 animate-spin text-teal-400" />
+                            <span>Saving Inquiry...</span>
+                          </>
+                        ) : (
+                          <span>Save Inquiry Status</span>
+                        )}
                       </button>
                     </div>
                   </div>
@@ -795,420 +2050,56 @@ export default function AdminDashboardPage() {
           )}
 
           {/* ============================================================ */}
-          {/* TAB 3: COMPANY CATALOG LISTINGS TOGGLE                       */}
-          {/* ============================================================ */}
-          {activeTab === "listings" && (
-            <div className="space-y-4">
-              <div>
-                <h2 className="text-xl font-bold text-slate-900 tracking-tight">
-                  Company Catalog Listings &amp; Scoping
-                </h2>
-                <p className="text-slate-500">
-                  Control which shared formulations appear in Lakshmi Pharma vs. The Kothittil Pharma catalogs.
-                </p>
-              </div>
-
-              <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-2xs">
-                <table className="w-full text-left border-collapse text-xs">
-                  <thead>
-                    <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 uppercase text-[10px] font-bold tracking-wider">
-                      <th className="py-3 px-4">Product Name</th>
-                      <th className="py-3 px-4">Manufacturer</th>
-                      <th className="py-3 px-4">Structured Composition</th>
-                      <th className="py-3 px-4 text-center">Lakshmi Pharma</th>
-                      <th className="py-3 px-4 text-center">The Kothittil Pharma</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {products.map((prod) => {
-                      const lakshmiListing = prod.companyProducts.find(
-                        (cp: any) => cp.company.slug === "lakshmi-pharma"
-                      );
-                      const kothittilListing = prod.companyProducts.find(
-                        (cp: any) => cp.company.slug === "kothittil-pharma"
-                      );
-
-                      const lakshmiCompany = overviewData?.companies?.find(
-                        (c: any) => c.slug === "lakshmi-pharma"
-                      );
-                      const kothittilCompany = overviewData?.companies?.find(
-                        (c: any) => c.slug === "kothittil-pharma"
-                      );
-
-                      return (
-                        <tr key={prod.id} className="hover:bg-slate-50">
-                          <td className="py-3 px-4 align-top">
-                            <div className="font-bold text-slate-900">{prod.name}</div>
-                            <div className="text-[10px] text-slate-400">
-                              {prod.dosageForm} • {prod.packaging}
-                            </div>
-                          </td>
-                          <td className="py-3 px-4 align-top font-semibold text-slate-700">
-                            {prod.manufacturer.name}
-                          </td>
-                          <td className="py-3 px-4 align-top">
-                            {prod.ingredients.map((i: any) => (
-                              <span
-                                key={i.id}
-                                className="inline-block mr-1 mb-1 px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 font-mono text-[10px]"
-                              >
-                                {i.ingredient.name} {i.quantity} {i.unit}
-                              </span>
-                            ))}
-                          </td>
-
-                          {/* Lakshmi Column */}
-                          <td className="py-3 px-4 align-top text-center">
-                            {lakshmiCompany && (
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  handleToggleListing(
-                                    lakshmiCompany.id,
-                                    prod.id,
-                                    "isPublished",
-                                    Boolean(lakshmiListing?.isPublished)
-                                  )
-                                }
-                                className={`px-3 py-1 rounded-full text-[10px] font-bold border transition-colors ${
-                                  lakshmiListing?.isPublished
-                                    ? "bg-emerald-50 text-emerald-800 border-emerald-300"
-                                    : "bg-slate-100 text-slate-400 border-slate-200 hover:bg-slate-200"
-                                }`}
-                              >
-                                {lakshmiListing?.isPublished ? "Listed ✓" : "Unlisted ✗"}
-                              </button>
-                            )}
-                          </td>
-
-                          {/* Kothittil Column */}
-                          <td className="py-3 px-4 align-top text-center">
-                            {kothittilCompany && (
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  handleToggleListing(
-                                    kothittilCompany.id,
-                                    prod.id,
-                                    "isPublished",
-                                    Boolean(kothittilListing?.isPublished)
-                                  )
-                                }
-                                className={`px-3 py-1 rounded-full text-[10px] font-bold border transition-colors ${
-                                  kothittilListing?.isPublished
-                                    ? "bg-blue-50 text-blue-800 border-blue-300"
-                                    : "bg-slate-100 text-slate-400 border-slate-200 hover:bg-slate-200"
-                                }`}
-                              >
-                                {kothittilListing?.isPublished ? "Listed ✓" : "Unlisted ✗"}
-                              </button>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* ============================================================ */}
-          {/* TAB 4: MANUFACTURERS & LOGOS (Super Admin)                  */}
-          {/* ============================================================ */}
-          {activeTab === "manufacturers" && isSuper && (
-            <div className="space-y-6">
-              <div>
-                <h2 className="text-xl font-bold text-slate-900 tracking-tight">
-                  Manufacturers &amp; Authorized Logos
-                </h2>
-                <p className="text-slate-500">
-                  Manage principal drug manufacturers. Only authorized logos and clean text fallbacks are supported (No product images).
-                </p>
-              </div>
-
-              {/* Add / Edit Manufacturer Form */}
-              <form
-                onSubmit={handleSaveManufacturer}
-                className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs space-y-4"
-              >
-                <h3 className="font-bold text-sm text-slate-900">
-                  Add / Update Manufacturer
-                </h3>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="font-semibold text-slate-700 block">
-                      Manufacturer Name <span className="text-rose-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={mfgForm.name}
-                      onChange={(e) => setMfgForm({ ...mfgForm, name: e.target.value })}
-                      placeholder="e.g. Cipla / Sun Pharma / Micro Labs"
-                      className="w-full h-9 px-3 rounded-lg border border-slate-300 text-slate-900"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="font-semibold text-slate-700 block">
-                      URL Slug (Optional)
-                    </label>
-                    <input
-                      type="text"
-                      value={mfgForm.slug}
-                      onChange={(e) => setMfgForm({ ...mfgForm, slug: e.target.value })}
-                      placeholder="e.g. cipla (auto-generated if empty)"
-                      className="w-full h-9 px-3 rounded-lg border border-slate-300 text-slate-900"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="font-semibold text-slate-700 block">
-                      Authorized Website URL
-                    </label>
-                    <input
-                      type="url"
-                      value={mfgForm.website}
-                      onChange={(e) => setMfgForm({ ...mfgForm, website: e.target.value })}
-                      placeholder="https://www.cipla.com"
-                      className="w-full h-9 px-3 rounded-lg border border-slate-300 text-slate-900"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="font-semibold text-slate-700 block">
-                      Authorized Logo SVG / Asset Path
-                    </label>
-                    <input
-                      type="text"
-                      value={mfgForm.logoUrl}
-                      onChange={(e) => setMfgForm({ ...mfgForm, logoUrl: e.target.value })}
-                      placeholder="/logos/cipla.svg (Leave empty for clean text fallback badge)"
-                      className="w-full h-9 px-3 rounded-lg border border-slate-300 text-slate-900 font-mono text-[11px]"
-                    />
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  className="px-4 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-bold"
-                >
-                  Save Manufacturer
-                </button>
-              </form>
-
-              {/* Manufacturers List */}
-              <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-2xs">
-                <table className="w-full text-left border-collapse text-xs">
-                  <thead>
-                    <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 uppercase text-[10px] font-bold tracking-wider">
-                      <th className="py-3 px-4">Display Name</th>
-                      <th className="py-3 px-4">Authorized Logo Preview</th>
-                      <th className="py-3 px-4">Products</th>
-                      <th className="py-3 px-4">Website</th>
-                      <th className="py-3 px-4 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {manufacturers.map((m) => (
-                      <tr key={m.id} className="hover:bg-slate-50">
-                        <td className="py-3 px-4 font-bold text-slate-900">{m.name}</td>
-                        <td className="py-3 px-4">
-                          <ManufacturerLogo name={m.name} logoUrl={m.logoUrl} size="sm" />
-                        </td>
-                        <td className="py-3 px-4 font-semibold text-slate-700">
-                          {m._count?.products ?? 0} formulations
-                        </td>
-                        <td className="py-3 px-4 text-slate-500">
-                          {m.website ? (
-                            <a
-                              href={m.website}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-600 hover:underline"
-                            >
-                              {m.website}
-                            </a>
-                          ) : (
-                            "—"
-                          )}
-                        </td>
-                        <td className="py-3 px-4 text-right">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setMfgForm({
-                                name: m.name,
-                                slug: m.slug,
-                                website: m.website || "",
-                                logoUrl: m.logoUrl || "",
-                              })
-                            }
-                            className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold"
-                          >
-                            Edit
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* ============================================================ */}
-          {/* TAB 5: INGREDIENTS & ALIASES (Super Admin)                  */}
-          {/* ============================================================ */}
-          {activeTab === "ingredients" && isSuper && (
-            <div className="space-y-6">
-              <div>
-                <h2 className="text-xl font-bold text-slate-900 tracking-tight">
-                  Canonical Ingredients &amp; Search Aliases
-                </h2>
-                <p className="text-slate-500">
-                  Manage active drug substances and map synonyms/aliases (e.g. Paracetamol &lt;-&gt; Acetaminophen, APAP) for accurate search discovery.
-                </p>
-              </div>
-
-              {/* Add / Edit Ingredient Form */}
-              <form
-                onSubmit={handleSaveIngredient}
-                className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs space-y-4"
-              >
-                <h3 className="font-bold text-sm text-slate-900">
-                  Add / Update Canonical Ingredient
-                </h3>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="font-semibold text-slate-700 block">
-                      Canonical Substance Name <span className="text-rose-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={ingForm.name}
-                      onChange={(e) => setIngForm({ ...ingForm, name: e.target.value })}
-                      placeholder="e.g. Paracetamol / Amoxicillin"
-                      className="w-full h-9 px-3 rounded-lg border border-slate-300 text-slate-900"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="font-semibold text-slate-700 block">
-                      Search Aliases (Comma-separated)
-                    </label>
-                    <input
-                      type="text"
-                      value={ingForm.aliasesText}
-                      onChange={(e) => setIngForm({ ...ingForm, aliasesText: e.target.value })}
-                      placeholder="e.g. Acetaminophen, APAP, Paracetamolum"
-                      className="w-full h-9 px-3 rounded-lg border border-slate-300 text-slate-900"
-                    />
-                  </div>
-
-                  <div className="sm:col-span-2 space-y-1">
-                    <label className="font-semibold text-slate-700 block">
-                      Description / Pharmacological Category
-                    </label>
-                    <input
-                      type="text"
-                      value={ingForm.description}
-                      onChange={(e) => setIngForm({ ...ingForm, description: e.target.value })}
-                      placeholder="Analgesic and antipyretic agent..."
-                      className="w-full h-9 px-3 rounded-lg border border-slate-300 text-slate-900"
-                    />
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  className="px-4 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-bold"
-                >
-                  Save Ingredient &amp; Aliases
-                </button>
-              </form>
-
-              {/* Ingredients List */}
-              <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-2xs">
-                <table className="w-full text-left border-collapse text-xs">
-                  <thead>
-                    <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 uppercase text-[10px] font-bold tracking-wider">
-                      <th className="py-3 px-4">Canonical Ingredient</th>
-                      <th className="py-3 px-4">Search Aliases / Synonyms</th>
-                      <th className="py-3 px-4">Linked Formulations</th>
-                      <th className="py-3 px-4 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {ingredients.map((ing) => (
-                      <tr key={ing.id} className="hover:bg-slate-50">
-                        <td className="py-3 px-4">
-                          <div className="font-bold text-slate-900">{ing.name}</div>
-                          {ing.description && (
-                            <div className="text-[10px] text-slate-500">{ing.description}</div>
-                          )}
-                        </td>
-                        <td className="py-3 px-4">
-                          <div className="flex flex-wrap gap-1">
-                            {ing.aliases?.map((a: any) => (
-                              <span
-                                key={a.id}
-                                className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-mono"
-                              >
-                                {a.aliasName}
-                              </span>
-                            ))}
-                          </div>
-                        </td>
-                        <td className="py-3 px-4 font-semibold text-slate-700">
-                          {ing._count?.productIngredients ?? 0}
-                        </td>
-                        <td className="py-3 px-4 text-right">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setIngForm({
-                                name: ing.name,
-                                slug: ing.slug,
-                                description: ing.description || "",
-                                aliasesText: ing.aliases?.map((a: any) => a.aliasName).join(", ") || "",
-                              })
-                            }
-                            className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold"
-                          >
-                            Edit
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* ============================================================ */}
-          {/* TAB 6: EDIT COMPANY PROFILE                                 */}
+          {/* TAB 5: COMPANY PROFILES & SETTINGS                           */}
           {/* ============================================================ */}
           {activeTab === "company_profile" && (
             <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs space-y-6">
-              <div>
-                <h2 className="text-xl font-bold text-slate-900 tracking-tight">
-                  Edit Company Profile
-                </h2>
-                <p className="text-slate-500">
-                  Update official business hours, phone numbers, warehouse address, and service areas.
-                </p>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-900 tracking-tight">
+                    Company Profiles &amp; Application Control
+                  </h2>
+                  <p className="text-slate-500">
+                    Update official business hours, warehouse addresses, drug license numbers, and contact details.
+                  </p>
+                </div>
+
+                {/* Company Switcher Tabs */}
+                <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl">
+                  {overviewData?.companies?.map((c: any) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => loadCompanyProfile(c)}
+                      className={`px-3 py-1.5 rounded-lg font-bold text-xs transition-colors ${
+                        selectedCompanyId === c.id
+                          ? "bg-white text-slate-900 shadow-xs"
+                          : "text-slate-600 hover:text-slate-900"
+                      }`}
+                    >
+                      {c.name}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <form onSubmit={handleSaveCompanyProfile} className="space-y-4 text-xs">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    <label className="font-semibold text-slate-700 block">Warehouse Address</label>
+                    <label className="font-semibold text-slate-700 block">Company Tagline</label>
+                    <input
+                      type="text"
+                      value={companyProfileForm.tagline}
+                      onChange={(e) =>
+                        setCompanyProfileForm({ ...companyProfileForm, tagline: e.target.value })
+                      }
+                      placeholder="e.g. Authorized B2B Pharmaceutical Distributor"
+                      className="w-full h-9 px-3 rounded-lg border border-slate-300 text-slate-900"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="font-semibold text-slate-700 block">Warehouse / Office Address</label>
                     <input
                       type="text"
                       value={companyProfileForm.address}
@@ -1232,7 +2123,7 @@ export default function AdminDashboardPage() {
                   </div>
 
                   <div className="space-y-1">
-                    <label className="font-semibold text-slate-700 block">Orders Email</label>
+                    <label className="font-semibold text-slate-700 block">Orders &amp; Quote Email</label>
                     <input
                       type="email"
                       value={companyProfileForm.email}
@@ -1255,7 +2146,7 @@ export default function AdminDashboardPage() {
                     />
                   </div>
 
-                  <div className="sm:col-span-2 space-y-1">
+                  <div className="space-y-1">
                     <label className="font-semibold text-slate-700 block">Operating Hours</label>
                     <input
                       type="text"
@@ -1267,9 +2158,35 @@ export default function AdminDashboardPage() {
                     />
                   </div>
 
+                  <div className="space-y-1">
+                    <label className="font-semibold text-slate-700 block">Drug License Number</label>
+                    <input
+                      type="text"
+                      value={companyProfileForm.drugLicenseNo}
+                      onChange={(e) =>
+                        setCompanyProfileForm({ ...companyProfileForm, drugLicenseNo: e.target.value })
+                      }
+                      placeholder="e.g. DL-KL-20B-123456"
+                      className="w-full h-9 px-3 rounded-lg border border-slate-300 text-slate-900 font-mono"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="font-semibold text-slate-700 block">GSTIN Number</label>
+                    <input
+                      type="text"
+                      value={companyProfileForm.gstin}
+                      onChange={(e) =>
+                        setCompanyProfileForm({ ...companyProfileForm, gstin: e.target.value })
+                      }
+                      placeholder="e.g. 32AABCU9603R1ZX"
+                      className="w-full h-9 px-3 rounded-lg border border-slate-300 text-slate-900 font-mono"
+                    />
+                  </div>
+
                   <div className="sm:col-span-2 space-y-1">
                     <label className="font-semibold text-slate-700 block">
-                      Service Coverage Areas
+                      Geographic Service Coverage Areas
                     </label>
                     <textarea
                       rows={2}
@@ -1277,13 +2194,14 @@ export default function AdminDashboardPage() {
                       onChange={(e) =>
                         setCompanyProfileForm({ ...companyProfileForm, serviceAreas: e.target.value })
                       }
+                      placeholder="Districts, delivery schedule, cold-chain coverage..."
                       className="w-full p-2.5 rounded-lg border border-slate-300 text-slate-900"
                     />
                   </div>
 
                   <div className="sm:col-span-2 space-y-1">
                     <label className="font-semibold text-slate-700 block">
-                      Company Description
+                      Company Profile &amp; Overview
                     </label>
                     <textarea
                       rows={3}
@@ -1299,19 +2217,366 @@ export default function AdminDashboardPage() {
                 <div className="flex items-center gap-2 pt-2">
                   <button
                     type="submit"
-                    className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold"
+                    disabled={savingCompanyProfile}
+                    className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold flex items-center gap-1.5 disabled:opacity-50 transition-colors"
                   >
-                    Save Profile Updates
+                    {savingCompanyProfile ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-teal-400" />
+                        <span>Saving Profile Updates...</span>
+                      </>
+                    ) : (
+                      <span>Save Profile Updates</span>
+                    )}
                   </button>
                   <button
                     type="button"
                     onClick={() => setActiveTab("overview")}
-                    className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700"
+                    className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold"
                   >
                     Back to Overview
                   </button>
                 </div>
               </form>
+            </div>
+          )}
+
+          {/* ============================================================ */}
+          {/* TAB 6: MANUFACTURERS & LOGOS (Super Admin)                  */}
+          {/* ============================================================ */}
+          {activeTab === "manufacturers" && isSuper && (
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                    <span>Manufacturers &amp; Authorized Logos</span>
+                    {brandsLoading && <Loader2 className="w-4 h-4 animate-spin text-teal-600" />}
+                  </h2>
+                  <p className="text-slate-500">
+                    Manage principal drug manufacturers. Only authorized logos and clean text fallbacks are supported.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  disabled={brandsLoading}
+                  onClick={loadManufacturers}
+                  className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 font-semibold disabled:opacity-50 transition-colors flex items-center gap-1.5 self-start sm:self-auto shrink-0"
+                >
+                  {brandsLoading && <Loader2 className="w-3.5 h-3.5 animate-spin text-teal-600" />}
+                  <span>{brandsLoading ? "Refreshing..." : "Refresh List"}</span>
+                </button>
+              </div>
+
+              {/* Add / Edit Manufacturer Form */}
+              <form
+                onSubmit={handleSaveManufacturer}
+                className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs space-y-4"
+              >
+                <h3 className="font-bold text-sm text-slate-900">
+                  Add / Update Manufacturer
+                </h3>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="font-semibold text-slate-700 block">
+                      Manufacturer Name <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={mfgForm.name}
+                      onChange={(e) => setMfgForm({ ...mfgForm, name: e.target.value })}
+                      placeholder="e.g. Rhine Life Sciences Pvt. Ltd."
+                      className="w-full h-9 px-3 rounded-lg border border-slate-300 text-slate-900"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="font-semibold text-slate-700 block">
+                      URL Slug (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={mfgForm.slug}
+                      onChange={(e) => setMfgForm({ ...mfgForm, slug: e.target.value })}
+                      placeholder="e.g. rhine-life-sciences"
+                      className="w-full h-9 px-3 rounded-lg border border-slate-300 text-slate-900"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="font-semibold text-slate-700 block">
+                      Authorized Website URL
+                    </label>
+                    <input
+                      type="url"
+                      value={mfgForm.website}
+                      onChange={(e) => setMfgForm({ ...mfgForm, website: e.target.value })}
+                      placeholder="https://www.rhinelifesciences.com"
+                      className="w-full h-9 px-3 rounded-lg border border-slate-300 text-slate-900"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="font-semibold text-slate-700 block">
+                      Authorized Logo SVG / Asset Path
+                    </label>
+                    <input
+                      type="text"
+                      value={mfgForm.logoUrl}
+                      onChange={(e) => setMfgForm({ ...mfgForm, logoUrl: e.target.value })}
+                      placeholder="/logos/rhine.svg (Leave empty for clean text fallback)"
+                      className="w-full h-9 px-3 rounded-lg border border-slate-300 text-slate-900 font-mono text-[11px]"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={savingMfg}
+                  className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold flex items-center gap-1.5 disabled:opacity-50 transition-colors"
+                >
+                  {savingMfg ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-teal-400" />
+                      <span>Saving Manufacturer...</span>
+                    </>
+                  ) : (
+                    <span>Save Manufacturer</span>
+                  )}
+                </button>
+              </form>
+
+              {/* Manufacturers Table */}
+              <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-2xs relative">
+                {brandsLoading && manufacturers.length > 0 && (
+                  <div className="absolute inset-0 bg-white/70 backdrop-blur-2xs flex items-center justify-center z-10 transition-opacity">
+                    <div className="px-4 py-2.5 rounded-xl bg-slate-900 text-white flex items-center gap-2.5 shadow-lg border border-slate-800">
+                      <Loader2 className="w-4 h-4 animate-spin text-teal-400" />
+                      <span className="font-semibold text-xs">Updating manufacturers...</span>
+                    </div>
+                  </div>
+                )}
+
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 uppercase text-[10px] font-bold tracking-wider">
+                      <th className="py-3 px-4">Brand Logo</th>
+                      <th className="py-3 px-4">Name</th>
+                      <th className="py-3 px-4">Slug</th>
+                      <th className="py-3 px-4">Products</th>
+                      <th className="py-3 px-4">Website</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {brandsLoading && manufacturers.length === 0 ? (
+                      Array.from({ length: 3 }).map((_, idx) => (
+                        <tr key={idx} className="animate-pulse">
+                          <td className="py-3.5 px-4">
+                            <div className="h-7 w-20 bg-slate-200 rounded" />
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <div className="h-4 w-36 bg-slate-200 rounded" />
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <div className="h-4 w-28 bg-slate-100 rounded" />
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <div className="h-4 w-8 bg-slate-200 rounded" />
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <div className="h-4 w-20 bg-slate-100 rounded" />
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      manufacturers.map((m) => (
+                        <tr key={m.id} className="hover:bg-slate-50">
+                          <td className="py-3 px-4">
+                            <ManufacturerLogo logoUrl={m.logoUrl} name={m.name} className="h-7 w-20" />
+                          </td>
+                          <td className="py-3 px-4 font-bold text-slate-900">{m.name}</td>
+                          <td className="py-3 px-4 font-mono text-slate-400">{m.slug}</td>
+                          <td className="py-3 px-4 font-semibold text-slate-700">
+                            {m._count?.products || 0}
+                          </td>
+                          <td className="py-3 px-4 text-slate-500">
+                            {m.website ? (
+                              <a
+                                href={m.website}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-teal-600 hover:underline"
+                              >
+                                Visit Site ↗
+                              </a>
+                            ) : (
+                              "—"
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* ============================================================ */}
+          {/* TAB 7: CANONICAL INGREDIENTS & ALIASES (Super Admin)        */}
+          {/* ============================================================ */}
+          {activeTab === "ingredients" && isSuper && (
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                    <span>Canonical Ingredients &amp; Search Aliases</span>
+                    {ingredientsLoading && <Loader2 className="w-4 h-4 animate-spin text-teal-600" />}
+                  </h2>
+                  <p className="text-slate-500">
+                    Manage active pharmaceutical ingredients (APIs) and synonym mappings (e.g. Paracetamol = Acetaminophen).
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  disabled={ingredientsLoading}
+                  onClick={loadIngredients}
+                  className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 font-semibold disabled:opacity-50 transition-colors flex items-center gap-1.5 self-start sm:self-auto shrink-0"
+                >
+                  {ingredientsLoading && <Loader2 className="w-3.5 h-3.5 animate-spin text-teal-600" />}
+                  <span>{ingredientsLoading ? "Refreshing..." : "Refresh Ingredients"}</span>
+                </button>
+              </div>
+
+              {/* Add Ingredient Form */}
+              <form
+                onSubmit={handleSaveIngredient}
+                className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs space-y-4"
+              >
+                <h3 className="font-bold text-sm text-slate-900">Add Canonical Ingredient</h3>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="font-semibold text-slate-700 block">
+                      Canonical Name <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={ingForm.name}
+                      onChange={(e) => setIngForm({ ...ingForm, name: e.target.value })}
+                      placeholder="e.g. Bisoprolol Fumarate"
+                      className="w-full h-9 px-3 rounded-lg border border-slate-300 text-slate-900"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="font-semibold text-slate-700 block">Slug (Optional)</label>
+                    <input
+                      type="text"
+                      value={ingForm.slug}
+                      onChange={(e) => setIngForm({ ...ingForm, slug: e.target.value })}
+                      placeholder="e.g. bisoprolol-fumarate"
+                      className="w-full h-9 px-3 rounded-lg border border-slate-300 text-slate-900"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2 space-y-1">
+                    <label className="font-semibold text-slate-700 block">
+                      Search Aliases &amp; Synonyms (Comma-separated)
+                    </label>
+                    <input
+                      type="text"
+                      value={ingForm.aliasesText}
+                      onChange={(e) => setIngForm({ ...ingForm, aliasesText: e.target.value })}
+                      placeholder="e.g. Bisoprolol, Bisoprolol Hemifumarate"
+                      className="w-full h-9 px-3 rounded-lg border border-slate-300 text-slate-900"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={savingIngredient}
+                  className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold flex items-center gap-1.5 disabled:opacity-50 transition-colors"
+                >
+                  {savingIngredient ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-teal-400" />
+                      <span>Saving Ingredient...</span>
+                    </>
+                  ) : (
+                    <span>Save Ingredient</span>
+                  )}
+                </button>
+              </form>
+
+              {/* Ingredients Table */}
+              <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-2xs relative">
+                {ingredientsLoading && ingredients.length > 0 && (
+                  <div className="absolute inset-0 bg-white/70 backdrop-blur-2xs flex items-center justify-center z-10 transition-opacity">
+                    <div className="px-4 py-2.5 rounded-xl bg-slate-900 text-white flex items-center gap-2.5 shadow-lg border border-slate-800">
+                      <Loader2 className="w-4 h-4 animate-spin text-teal-400" />
+                      <span className="font-semibold text-xs">Updating active ingredients...</span>
+                    </div>
+                  </div>
+                )}
+
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 uppercase text-[10px] font-bold tracking-wider">
+                      <th className="py-3 px-4">Canonical API Name</th>
+                      <th className="py-3 px-4">Search Aliases &amp; Synonyms</th>
+                      <th className="py-3 px-4">Formulations Using API</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {ingredientsLoading && ingredients.length === 0 ? (
+                      Array.from({ length: 5 }).map((_, idx) => (
+                        <tr key={idx} className="animate-pulse">
+                          <td className="py-3.5 px-4">
+                            <div className="h-4 w-40 bg-slate-200 rounded" />
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <div className="flex gap-1.5">
+                              <div className="h-4 w-20 bg-slate-150 rounded" />
+                              <div className="h-4 w-28 bg-slate-100 rounded" />
+                            </div>
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <div className="h-4 w-12 bg-slate-200 rounded" />
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      ingredients.map((ing) => (
+                        <tr key={ing.id} className="hover:bg-slate-50">
+                          <td className="py-3 px-4 font-bold text-slate-900">{ing.name}</td>
+                          <td className="py-3 px-4">
+                            <div className="flex flex-wrap gap-1">
+                              {ing.aliases?.map((a: any) => (
+                                <span
+                                  key={a.id}
+                                  className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 font-mono text-[10px]"
+                                >
+                                  {a.aliasName}
+                                </span>
+                              ))}
+                              {(!ing.aliases || ing.aliases.length === 0) && (
+                                <span className="text-slate-400 italic">No aliases</span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 font-semibold text-slate-700">
+                            {ing._count?.productIngredients || 0}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </main>

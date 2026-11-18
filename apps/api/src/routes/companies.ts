@@ -2,50 +2,57 @@ import { Router, Request, Response, NextFunction } from "express";
 import { prisma } from "@lk/database";
 import { z } from "zod";
 import { ApiError } from "../middleware/errorHandler";
-import { searchCompanyProducts } from "../utils/compositionSearch";
+import {
+  searchCompanyProducts,
+  getCompanyFilterMeta,
+  getAuthorizedManufacturerIds,
+} from "../utils/compositionSearch";
 import { findProductsWithMatchingComposition } from "../utils/matchingComposition";
+import { memoryCache } from "../utils/cache";
 
 export const companyRouter = Router();
 
-// 1. List all active companies
+// 1. List all active companies (Cached 60s)
 companyRouter.get("/", async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const companies = await prisma.company.findMany({
-      where: { isActive: true },
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        shortName: true,
-        accentColor: true,
-        tagline: true,
-        description: true,
-        serviceAreas: true,
-        address: true,
-        phone: true,
-        email: true,
-        whatsapp: true,
-        mapUrl: true,
-        businessHours: true,
-        drugLicenseNo: true,
-        gstin: true,
-        _count: {
-          select: {
-            companyProducts: { where: { isPublished: true } },
-            companyManufacturers: { where: { isAuthorized: true } },
+    const data = await memoryCache.getOrSet("all_active_companies", async () => {
+      const companies = await prisma.company.findMany({
+        where: { isActive: true },
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          shortName: true,
+          accentColor: true,
+          tagline: true,
+          description: true,
+          serviceAreas: true,
+          address: true,
+          phone: true,
+          email: true,
+          whatsapp: true,
+          mapUrl: true,
+          businessHours: true,
+          drugLicenseNo: true,
+          gstin: true,
+          _count: {
+            select: {
+              companyProducts: { where: { isPublished: true } },
+              companyManufacturers: { where: { isAuthorized: true } },
+            },
           },
         },
-      },
-    });
+      });
 
-    res.json({
-      success: true,
-      data: companies.map((c) => ({
+      return companies.map((c) => ({
         ...c,
         totalProducts: c._count.companyProducts,
         totalManufacturers: c._count.companyManufacturers,
-      })),
-    });
+      }));
+    }, 60);
+
+    res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=300");
+    res.json({ success: true, data });
   } catch (err) {
     next(err);
   }
@@ -62,38 +69,47 @@ async function getCompanyBySlug(slug: string) {
   return company;
 }
 
-// 2. Get single company details
+// 2. Get single company details (Cached 60s)
 companyRouter.get("/:slug", async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const company = await getCompanyBySlug(req.params.slug);
+    const slug = req.params.slug;
+    const data = await memoryCache.getOrSet(`company_detail:${slug}`, async () => {
+      const company = await getCompanyBySlug(slug);
 
-    const [publishedProductsCount, authorizedManufacturersCount, featuredProducts] =
-      await Promise.all([
-        prisma.companyProduct.count({
-          where: { companyId: company.id, isPublished: true },
-        }),
-        prisma.companyManufacturer.count({
-          where: { companyId: company.id, isAuthorized: true },
-        }),
-        prisma.companyProduct.findMany({
-          where: { companyId: company.id, isPublished: true, isFeatured: true },
-          take: 6,
-          include: {
-            product: {
-              include: {
-                manufacturer: true,
-                ingredients: {
-                  include: { ingredient: true },
+      const authorizedMfgIds = await getAuthorizedManufacturerIds(company.id);
+
+      const [publishedProductsCount, authorizedManufacturersCount, featuredProducts] =
+        await Promise.all([
+          prisma.companyProduct.count({
+            where: {
+              companyId: company.id,
+              isPublished: true,
+              product: { manufacturerId: { in: authorizedMfgIds } },
+            },
+          }),
+          authorizedMfgIds.length,
+          prisma.companyProduct.findMany({
+            where: {
+              companyId: company.id,
+              isPublished: true,
+              isFeatured: true,
+              product: { manufacturerId: { in: authorizedMfgIds } },
+            },
+            take: 6,
+            include: {
+              product: {
+                include: {
+                  manufacturer: true,
+                  ingredients: {
+                    include: { ingredient: true },
+                  },
                 },
               },
             },
-          },
-        }),
-      ]);
+          }),
+        ]);
 
-    res.json({
-      success: true,
-      data: {
+      return {
         ...company,
         stats: {
           totalProducts: publishedProductsCount,
@@ -115,7 +131,32 @@ companyRouter.get("/:slug", async (req: Request, res: Response, next: NextFuncti
             .map((i) => `${i.ingredient.name} ${i.quantity} ${i.unit}`)
             .join(" + "),
         })),
+      };
+    }, 60);
+
+    res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=300");
+    res.json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// 2b. Fast dedicated filter metadata endpoint (Cached 60s)
+companyRouter.get("/:slug/filter-meta", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const company = await getCompanyBySlug(req.params.slug);
+    const authMfgIds = await getAuthorizedManufacturerIds(company.id);
+    const filterMeta = await getCompanyFilterMeta(company.id, authMfgIds);
+
+    res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=300");
+    res.json({
+      success: true,
+      company: {
+        id: company.id,
+        name: company.name,
+        slug: company.slug,
       },
+      data: filterMeta,
     });
   } catch (err) {
     next(err);
@@ -131,7 +172,6 @@ companyRouter.get("/:slug/products", async (req: Request, res: Response, next: N
       q,
       manufacturer,
       dosageForm,
-      category,
       strength,
       page,
       limit,
@@ -142,7 +182,6 @@ companyRouter.get("/:slug/products", async (req: Request, res: Response, next: N
       query: typeof q === "string" ? q : undefined,
       manufacturerSlug: typeof manufacturer === "string" ? manufacturer : undefined,
       dosageForm: typeof dosageForm === "string" ? dosageForm : undefined,
-      categorySlug: typeof category === "string" ? category : undefined,
       strength: typeof strength === "string" ? strength : undefined,
       page: page ? parseInt(page as string, 10) : 1,
       limit: limit ? parseInt(limit as string, 10) : 12,
@@ -170,20 +209,27 @@ companyRouter.get("/:slug/products/:productSlug", async (req: Request, res: Resp
     const company = await getCompanyBySlug(req.params.slug);
     const { productSlug } = req.params;
 
-    // Verify product is published in this company
+    // Verify product is published in this company and its brand is authorized
     const companyProduct = await prisma.companyProduct.findFirst({
       where: {
         companyId: company.id,
         isPublished: true,
-        product: { slug: productSlug },
+        product: {
+          slug: productSlug,
+          manufacturer: {
+            companyManufacturers: {
+              some: {
+                companyId: company.id,
+                isAuthorized: true,
+              },
+            },
+          },
+        },
       },
       include: {
         product: {
           include: {
             manufacturer: true,
-            categories: {
-              include: { category: true },
-            },
             ingredients: {
               include: {
                 ingredient: {
@@ -247,11 +293,7 @@ companyRouter.get("/:slug/products/:productSlug", async (req: Request, res: Resp
           isPrimary: pi.isPrimary,
           aliases: pi.ingredient.aliases.map((a) => a.aliasName),
         })),
-        categories: prod.categories.map((c) => ({
-          id: c.category.id,
-          name: c.category.name,
-          slug: c.category.slug,
-        })),
+        categories: [],
         matchingComposition,
       },
     });
@@ -260,48 +302,42 @@ companyRouter.get("/:slug/products/:productSlug", async (req: Request, res: Resp
   }
 });
 
-// 5. Get company's authorized manufacturers
+// 5. Get company's authorized manufacturers (Cached 60s)
 companyRouter.get("/:slug/manufacturers", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const company = await getCompanyBySlug(req.params.slug);
 
-    const companyManufacturers = await prisma.companyManufacturer.findMany({
-      where: {
-        companyId: company.id,
-        isAuthorized: true,
-      },
-      include: {
-        manufacturer: {
-          include: {
-            products: {
-              where: {
-                companyProducts: {
-                  some: {
-                    companyId: company.id,
-                    isPublished: true,
+    const data = await memoryCache.getOrSet(`company_mfg_list:${company.id}`, async () => {
+      const companyManufacturers = await prisma.companyManufacturer.findMany({
+        where: {
+          companyId: company.id,
+          isAuthorized: true,
+        },
+        include: {
+          manufacturer: {
+            include: {
+              products: {
+                where: {
+                  companyProducts: {
+                    some: {
+                      companyId: company.id,
+                      isPublished: true,
+                    },
                   },
                 },
+                select: { id: true },
               },
-              select: { id: true },
             },
           },
         },
-      },
-      orderBy: {
-        manufacturer: {
-          name: "asc",
+        orderBy: {
+          manufacturer: {
+            name: "asc",
+          },
         },
-      },
-    });
+      });
 
-    res.json({
-      success: true,
-      company: {
-        id: company.id,
-        name: company.name,
-        slug: company.slug,
-      },
-      data: companyManufacturers.map((cm) => ({
+      return companyManufacturers.map((cm) => ({
         id: cm.manufacturer.id,
         name: cm.manufacturer.name,
         slug: cm.manufacturer.slug,
@@ -310,7 +346,18 @@ companyRouter.get("/:slug/manufacturers", async (req: Request, res: Response, ne
         isAuthorized: cm.isAuthorized,
         partnershipDetails: cm.partnershipDetails,
         publishedProductCount: cm.manufacturer.products.length,
-      })),
+      }));
+    }, 60);
+
+    res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=300");
+    res.json({
+      success: true,
+      company: {
+        id: company.id,
+        name: company.name,
+        slug: company.slug,
+      },
+      data,
     });
   } catch (err) {
     next(err);
@@ -339,6 +386,13 @@ companyRouter.get("/:slug/manufacturers/:mfgSlug", async (req: Request, res: Res
         },
       },
     });
+
+    if (!companyManufacturer || !companyManufacturer.isAuthorized) {
+      throw new ApiError(
+        404,
+        "Manufacturer '" + manufacturer.name + "' is not authorized or distributed by " + company.name
+      );
+    }
 
     // Fetch published products from this manufacturer for this company
     const products = await prisma.companyProduct.findMany({

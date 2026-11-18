@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Search, SlidersHorizontal, X, ChevronLeft, ChevronRight, Phone, AlertCircle } from "lucide-react";
 import { CatalogResponse, Company, FilterMeta } from "@/types";
-import { fetchCatalog } from "@/lib/api";
+import { fetchCatalog, fetchCompanyFilterMeta } from "@/lib/api";
 import { telHref } from "@/lib/companies";
 import { useEscape, useScrollLock } from "@/lib/hooks";
 import { ProductTable, ProductTableSkeleton } from "./ProductTable";
@@ -15,7 +15,7 @@ const SORTS = [
   { value: "name_asc", label: "Name A–Z" },
   { value: "name_desc", label: "Name Z–A" },
 ];
-type FilterKey = "manufacturer" | "dosageForm" | "category";
+type FilterKey = "manufacturer" | "dosageForm";
 
 export function CatalogView({ company }: { company: Company }) {
   const slug = company.slug;
@@ -56,22 +56,28 @@ export function CatalogView({ company }: { company: Company }) {
       q: q || undefined,
       manufacturer: params.get("manufacturer") ?? undefined,
       dosageForm: params.get("dosageForm") ?? undefined,
-      category: params.get("category") ?? undefined,
       sort: params.get("sort") ?? undefined,
       page,
       limit: PAGE_SIZE,
     })
-      .then((res) => !cancelled && setData(res))
+      .then((res) => {
+        if (!cancelled) {
+          setData(res);
+          if (!allMeta && res.filterMeta) {
+            setAllMeta(res.filterMeta);
+          }
+        }
+      })
       .catch((e) => !cancelled && setError(e instanceof Error ? e.message : "Could not load products"))
       .finally(() => !cancelled && setLoading(false));
     return () => {
       cancelled = true;
     };
-  }, [slug, params, q, page, retry]);
+  }, [slug, params, q, page, retry, allMeta]);
 
   useEffect(() => {
-    fetchCatalog(slug, { limit: 1 })
-      .then((r) => setAllMeta(r.filterMeta))
+    fetchCompanyFilterMeta(slug)
+      .then((m) => setAllMeta(m))
       .catch(() => {});
   }, [slug]);
 
@@ -90,8 +96,6 @@ export function CatalogView({ company }: { company: Company }) {
   if (mfg) active.push({ key: "manufacturer", label: meta?.manufacturers.find((m) => m.slug === mfg)?.name ?? mfg });
   const form = params.get("dosageForm");
   if (form) active.push({ key: "dosageForm", label: form });
-  const cat = params.get("category");
-  if (cat) active.push({ key: "category", label: meta?.categories.find((c) => c.slug === cat)?.name ?? cat });
 
   const goToPage = (p: number) => {
     update({ page: p > 1 ? String(p) : undefined }, false);
@@ -101,7 +105,7 @@ export function CatalogView({ company }: { company: Company }) {
   const filters = meta && (
     <FilterGroups
       meta={meta}
-      selected={{ manufacturer: mfg, dosageForm: form, category: cat }}
+      selected={{ manufacturer: mfg, dosageForm: form }}
       sort={params.get("sort") ?? ""}
       onChange={(k, v) => update({ [k]: v })}
       onSort={(v) => update({ sort: v || undefined })}
@@ -133,10 +137,15 @@ export function CatalogView({ company }: { company: Company }) {
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="e.g. Dolo 650 or Paracetamol"
+              placeholder="e.g. BISY 2.5, DAPARIN-10, or Paracetamol"
               className="h-[52px] min-w-0 flex-1 bg-transparent text-lg outline-none placeholder:text-ink-mute"
               autoComplete="off"
             />
+            {loading && (
+              <span className="flex items-center justify-center px-1" title="Searching formulations...">
+                <span className="h-5 w-5 animate-spin rounded-full border-2 border-accent/20 border-t-accent" />
+              </span>
+            )}
             {query && (
               <button
                 type="button"
@@ -294,8 +303,7 @@ function FilterGroups({
 }) {
   const groups: Array<{ key: FilterKey; title: string; options: Array<{ value: string; label: string; count: number }> }> = [
     { key: "dosageForm", title: "Type", options: meta.dosageForms.map((d) => ({ value: d.name, label: d.name, count: d.count })) },
-    { key: "category", title: "Category", options: meta.categories.map((c) => ({ value: c.slug, label: c.name, count: c.count })) },
-    { key: "manufacturer", title: "Manufacturer", options: meta.manufacturers.map((m) => ({ value: m.slug, label: m.name, count: m.count })) },
+    { key: "manufacturer", title: "Brand / Manufacturer", options: meta.manufacturers.map((m) => ({ value: m.slug, label: m.name, count: m.count })) },
   ];
   return (
     <div className="space-y-7">

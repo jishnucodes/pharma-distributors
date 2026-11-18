@@ -24,6 +24,15 @@ export async function fetchCompany(slug: string): Promise<Company> {
   return data.data;
 }
 
+export async function fetchCompanyFilterMeta(slug: string): Promise<import("@/types").FilterMeta> {
+  const res = await fetch(`${API_BASE}/companies/${slug}/filter-meta`, {
+    next: { revalidate: 60 },
+  });
+  if (!res.ok) throw new Error(`Filter metadata for '${slug}' not found`);
+  const data = await res.json();
+  return data.data;
+}
+
 export async function fetchCatalog(
   slug: string,
   params: {
@@ -41,14 +50,13 @@ export async function fetchCatalog(
   if (params.q) query.set("q", params.q);
   if (params.manufacturer) query.set("manufacturer", params.manufacturer);
   if (params.dosageForm) query.set("dosageForm", params.dosageForm);
-  if (params.category) query.set("category", params.category);
   if (params.strength) query.set("strength", params.strength);
   if (params.page) query.set("page", params.page.toString());
   if (params.limit) query.set("limit", params.limit.toString());
   if (params.sort) query.set("sort", params.sort);
 
   // Unfiltered requests can use ISR cache (60s) for ultra-fast instant loads, dynamic filters use no-store
-  const isFiltered = !!(params.q || params.manufacturer || params.dosageForm || params.category || params.strength || (params.page && params.page > 1) || params.sort);
+  const isFiltered = !!(params.q || params.manufacturer || params.dosageForm || params.strength || (params.page && params.page > 1) || params.sort);
   const fetchOpts = isFiltered ? { cache: "no-store" as const } : { next: { revalidate: 60 } };
 
   const res = await fetch(`${API_BASE}/companies/${slug}/products?${query.toString()}`, fetchOpts);
@@ -138,17 +146,23 @@ export async function fetchAdminOverview(token: string) {
   return data.data;
 }
 
-export async function fetchAdminInquiries(token: string, filter?: { companyId?: string; status?: string }): Promise<Inquiry[]> {
+export async function fetchAdminInquiries(
+  token: string,
+  filter?: { companyId?: string; status?: string; page?: number; limit?: number | "all"; search?: string }
+): Promise<{ data: Inquiry[]; pagination?: { total: number; page: number; limit: number; totalPages: number } }> {
   const query = new URLSearchParams();
   if (filter?.companyId) query.set("companyId", filter.companyId);
   if (filter?.status) query.set("status", filter.status);
+  if (filter?.page) query.set("page", filter.page.toString());
+  if (filter?.limit) query.set("limit", filter.limit.toString());
+  if (filter?.search) query.set("search", filter.search);
 
   const res = await fetch(`${API_BASE}/admin/inquiries?${query.toString()}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || "Failed to fetch inquiries");
-  return data.data;
+  return { data: data.data, pagination: data.pagination };
 }
 
 export async function updateInquiryStatus(token: string, id: string, status: string, adminNotes?: string) {
@@ -194,12 +208,24 @@ export async function toggleCompanyProductListing(token: string, payload: {
   return res.json();
 }
 
-export async function fetchAdminProducts(token: string) {
-  const res = await fetch(`${API_BASE}/admin/products`, {
+export async function fetchAdminProducts(
+  token: string,
+  options?: { page?: number; limit?: number | "all"; q?: string; dosageForm?: string; manufacturerId?: string; companyId?: string }
+): Promise<{ data: any[]; pagination?: { total: number; page: number; limit: number; totalPages: number } }> {
+  const query = new URLSearchParams();
+  if (options?.page) query.set("page", options.page.toString());
+  if (options?.limit) query.set("limit", options.limit.toString());
+  if (options?.q) query.set("q", options.q);
+  if (options?.dosageForm) query.set("dosageForm", options.dosageForm);
+  if (options?.manufacturerId) query.set("manufacturerId", options.manufacturerId);
+  if (options?.companyId) query.set("companyId", options.companyId);
+
+  const res = await fetch(`${API_BASE}/admin/products?${query.toString()}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   const data = await res.json();
-  return data.data;
+  if (!res.ok) throw new Error(data.error || "Failed to fetch products");
+  return { data: data.data, pagination: data.pagination };
 }
 
 export async function fetchAdminManufacturers(token: string) {
@@ -240,4 +266,56 @@ export async function saveIngredient(token: string, payload: { name: string; slu
     body: JSON.stringify(payload),
   });
   return res.json();
+}
+
+export async function updateAdminProduct(token: string, id: string, payload: any) {
+  const res = await fetch(`${API_BASE}/admin/products/${id}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || "Failed to update product");
+  return data;
+}
+
+export async function deleteAdminProduct(token: string, id: string) {
+  const res = await fetch(`${API_BASE}/admin/products/${id}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || "Failed to delete product");
+  return data;
+}
+
+export async function fetchAdminCompanyManufacturers(token: string) {
+  const res = await fetch(`${API_BASE}/admin/company-manufacturers`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || "Failed to fetch company brand authorizations");
+  return data.data;
+}
+
+export async function toggleCompanyManufacturerAuthorization(
+  token: string,
+  payload: { companyId: string; manufacturerId: string; isAuthorized: boolean; partnershipDetails?: string }
+) {
+  const res = await fetch(`${API_BASE}/admin/company-manufacturers/toggle`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || "Failed to update brand authorization");
+  return data;
 }

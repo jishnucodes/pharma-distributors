@@ -6,6 +6,7 @@ import path from "path";
 import fs from "fs";
 import { ApiError } from "../middleware/errorHandler";
 import { requireAuth, requireSuperAdmin, checkCompanyAccess } from "../middleware/auth";
+import { memoryCache } from "../utils/cache";
 
 export const adminRouter = Router();
 
@@ -66,40 +67,67 @@ adminRouter.get("/overview", async (req: Request, res: Response, next: NextFunct
   }
 });
 
-// 2. Inquiries Management
+// 2. Inquiries Management (With Server-Side Pagination & Search)
 adminRouter.get("/inquiries", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const user = req.user!;
     const isSuper = user.role === "SUPER_ADMIN";
-    const { companyId, status } = req.query;
+    const { companyId, status, page, limit, search } = req.query;
 
     const where: any = {};
     if (!isSuper) {
       where.companyId = { in: user.companyIds };
-    } else if (companyId && typeof companyId === "string") {
+    } else if (companyId && typeof companyId === "string" && companyId !== "ALL") {
       where.companyId = companyId;
     }
 
-    if (status && typeof status === "string") {
+    if (status && typeof status === "string" && status !== "ALL") {
       where.status = status;
     }
 
-    const inquiries = await prisma.inquiry.findMany({
-      where,
-      include: {
-        company: {
-          select: { id: true, name: true, slug: true, accentColor: true },
+    if (search && typeof search === "string" && search.trim()) {
+      const st = search.trim();
+      where.OR = [
+        { name: { contains: st, mode: "insensitive" } },
+        { businessName: { contains: st, mode: "insensitive" } },
+        { phone: { contains: st, mode: "insensitive" } },
+        { email: { contains: st, mode: "insensitive" } },
+        { message: { contains: st, mode: "insensitive" } },
+      ];
+    }
+
+    const isAll = limit === "all";
+    const pageNum = Math.max(1, parseInt(page as string, 10) || 1);
+    const takeNum = isAll ? undefined : Math.max(1, Math.min(100, parseInt(limit as string, 10) || 20));
+    const skipNum = isAll ? undefined : (pageNum - 1) * takeNum!;
+
+    const [total, inquiries] = await Promise.all([
+      prisma.inquiry.count({ where }),
+      prisma.inquiry.findMany({
+        where,
+        skip: skipNum,
+        take: takeNum,
+        include: {
+          company: {
+            select: { id: true, name: true, slug: true, accentColor: true },
+          },
+          product: {
+            select: { id: true, name: true, slug: true, dosageForm: true, packaging: true },
+          },
         },
-        product: {
-          select: { id: true, name: true, slug: true, dosageForm: true, packaging: true },
-        },
-      },
-      orderBy: { createdAt: "desc" },
-    });
+        orderBy: { createdAt: "desc" },
+      }),
+    ]);
 
     res.json({
       success: true,
       data: inquiries,
+      pagination: {
+        total,
+        page: pageNum,
+        limit: takeNum || total,
+        totalPages: takeNum ? Math.ceil(total / takeNum) || 1 : 1,
+      },
     });
   } catch (err) {
     next(err);
@@ -172,6 +200,8 @@ adminRouter.put("/companies/:id", async (req: Request, res: Response, next: Next
       data: body,
     });
 
+    memoryCache.clear();
+
     res.json({
       success: true,
       message: "Company profile updated successfully",
@@ -182,31 +212,84 @@ adminRouter.put("/companies/:id", async (req: Request, res: Response, next: Next
   }
 });
 
-// 4. Products Management (List all, create shared, update shared)
+// 4. Products Management (With Server-Side Pagination & Filtering)
 adminRouter.get("/products", async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const products = await prisma.product.findMany({
-      include: {
-        manufacturer: true,
-        ingredients: {
-          include: {
-            ingredient: true,
-          },
-        },
-        companyProducts: {
-          include: {
-            company: {
-              select: { id: true, name: true, slug: true, accentColor: true },
+    const { page, limit, q, dosageForm, manufacturerId, companyId } = req.query;
+
+    const where: any = {};
+
+    if (dosageForm && typeof dosageForm === "string" && dosageForm !== "ALL") {
+      where.dosageForm = dosageForm;
+    }
+
+    if (manufacturerId && typeof manufacturerId === "string" && manufacturerId !== "ALL") {
+      where.manufacturerId = manufacturerId;
+    }
+
+    if (companyId && typeof companyId === "string" && companyId !== "ALL") {
+      where.companyProducts = {
+        some: { companyId, isPublished: true },
+      };
+    }
+
+    if (q && typeof q === "string" && q.trim()) {
+      const searchTerm = q.trim();
+      where.OR = [
+        { name: { contains: searchTerm, mode: "insensitive" } },
+        { slug: { contains: searchTerm, mode: "insensitive" } },
+        { packaging: { contains: searchTerm, mode: "insensitive" } },
+        {
+          ingredients: {
+            some: {
+              ingredient: {
+                name: { contains: searchTerm, mode: "insensitive" },
+              },
             },
           },
         },
-      },
-      orderBy: { name: "asc" },
-    });
+      ];
+    }
+
+    const isAll = limit === "all";
+    const pageNum = Math.max(1, parseInt(page as string, 10) || 1);
+    const takeNum = isAll ? undefined : Math.max(1, Math.min(200, parseInt(limit as string, 10) || 25));
+    const skipNum = isAll ? undefined : (pageNum - 1) * takeNum!;
+
+    const [total, products] = await Promise.all([
+      prisma.product.count({ where }),
+      prisma.product.findMany({
+        where,
+        skip: skipNum,
+        take: takeNum,
+        include: {
+          manufacturer: true,
+          ingredients: {
+            include: {
+              ingredient: true,
+            },
+          },
+          companyProducts: {
+            include: {
+              company: {
+                select: { id: true, name: true, slug: true, accentColor: true },
+              },
+            },
+          },
+        },
+        orderBy: { name: "asc" },
+      }),
+    ]);
 
     res.json({
       success: true,
       data: products,
+      pagination: {
+        total,
+        page: pageNum,
+        limit: takeNum || total,
+        totalPages: takeNum ? Math.ceil(total / takeNum) || 1 : 1,
+      },
     });
   } catch (err) {
     next(err);
@@ -266,11 +349,164 @@ adminRouter.post("/products", requireSuperAdmin, async (req: Request, res: Respo
       },
     });
 
+    memoryCache.clear();
+
     res.status(201).json({
       success: true,
       message: "Shared product created successfully",
       data: product,
     });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Update product (Admin & Super Admin)
+const updateProductSchema = z.object({
+  name: z.string().min(2).optional(),
+  slug: z.string().min(2).optional(),
+  manufacturerId: z.string().optional(),
+  dosageForm: z.string().min(2).optional(),
+  packaging: z.string().min(1).optional(),
+  description: z.string().optional().nullable(),
+  storageConditions: z.string().optional().nullable(),
+  schedule: z.string().optional().nullable(),
+  itemCode: z.string().optional().nullable(),
+  distributorNotes: z.string().optional().nullable(),
+  companyId: z.string().optional(),
+  ingredients: z
+    .array(
+      z.object({
+        ingredientId: z.string(),
+        quantity: z.number().positive(),
+        unit: z.string(),
+        perBasis: z.string().default("per unit"),
+        isPrimary: z.boolean().default(false),
+      })
+    )
+    .optional(),
+});
+
+adminRouter.put("/products/:id", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const user = req.user!;
+    const { id } = req.params;
+    const body = updateProductSchema.parse(req.body);
+
+    const existingProduct = await prisma.product.findUnique({
+      where: { id },
+      include: { ingredients: true },
+    });
+
+    if (!existingProduct) {
+      throw new ApiError(404, "Product not found");
+    }
+
+    if (user.role !== "SUPER_ADMIN" && body.companyId && !checkCompanyAccess(user, body.companyId)) {
+      throw new ApiError(403, "Forbidden: You do not have permission to modify this product");
+    }
+
+    const updateData: any = {};
+    if (body.name !== undefined) updateData.name = body.name;
+    if (body.slug !== undefined) updateData.slug = body.slug;
+    if (body.manufacturerId !== undefined) updateData.manufacturerId = body.manufacturerId;
+    if (body.dosageForm !== undefined) updateData.dosageForm = body.dosageForm;
+    if (body.packaging !== undefined) updateData.packaging = body.packaging;
+    if (body.description !== undefined) updateData.description = body.description;
+    if (body.storageConditions !== undefined) updateData.storageConditions = body.storageConditions;
+    if (body.schedule !== undefined) updateData.schedule = body.schedule;
+
+    // Handle ingredients update if provided
+    if (body.ingredients && body.ingredients.length > 0) {
+      await prisma.$transaction(async (tx) => {
+        await tx.productIngredient.deleteMany({
+          where: { productId: id },
+        });
+
+        await tx.productIngredient.createMany({
+          data: body.ingredients!.map((ing) => ({
+            productId: id,
+            ingredientId: ing.ingredientId,
+            quantity: ing.quantity,
+            unit: ing.unit,
+            perBasis: ing.perBasis,
+            isPrimary: ing.isPrimary,
+          })),
+        });
+
+        if (Object.keys(updateData).length > 0) {
+          await tx.product.update({
+            where: { id },
+            data: updateData,
+          });
+        }
+      });
+    } else if (Object.keys(updateData).length > 0) {
+      await prisma.product.update({
+        where: { id },
+        data: updateData,
+      });
+    }
+
+    // Update company listing specific info if companyId provided
+    if (body.companyId && (body.itemCode !== undefined || body.distributorNotes !== undefined)) {
+      await prisma.companyProduct.upsert({
+        where: {
+          companyId_productId: {
+            companyId: body.companyId,
+            productId: id,
+          },
+        },
+        update: {
+          ...(body.itemCode !== undefined ? { itemCode: body.itemCode } : {}),
+          ...(body.distributorNotes !== undefined ? { distributorNotes: body.distributorNotes } : {}),
+        },
+        create: {
+          companyId: body.companyId,
+          productId: id,
+          isPublished: true,
+          isFeatured: false,
+          itemCode: body.itemCode || null,
+          distributorNotes: body.distributorNotes || null,
+        },
+      });
+    }
+
+    const updatedProduct = await prisma.product.findUnique({
+      where: { id },
+      include: {
+        manufacturer: true,
+        ingredients: {
+          include: { ingredient: true },
+        },
+        companyProducts: {
+          include: {
+            company: {
+              select: { id: true, name: true, slug: true, accentColor: true },
+            },
+          },
+        },
+      },
+    });
+
+    memoryCache.clear();
+
+    res.json({
+      success: true,
+      message: "Product updated successfully",
+      data: updatedProduct,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+adminRouter.delete("/products/:id", requireSuperAdmin, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    await prisma.product.delete({ where: { id } });
+    memoryCache.clear();
+    res.json({ success: true, message: "Product deleted successfully" });
   } catch (err) {
     next(err);
   }
@@ -319,6 +555,8 @@ adminRouter.post("/company-products/toggle", async (req: Request, res: Response,
       },
     });
 
+    memoryCache.clear();
+
     res.json({
       success: true,
       message: "Company catalog listing updated",
@@ -329,11 +567,102 @@ adminRouter.post("/company-products/toggle", async (req: Request, res: Response,
   }
 });
 
-// 6. Manufacturers Management & Logo Updates
+// 6. Manufacturers & Brand Authorization by Firm
+const toggleCompanyMfgSchema = z.object({
+  companyId: z.string(),
+  manufacturerId: z.string(),
+  isAuthorized: z.boolean(),
+  partnershipDetails: z.string().optional().nullable(),
+});
+
+adminRouter.get("/company-manufacturers", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const user = req.user!;
+    const isSuper = user.role === "SUPER_ADMIN";
+    const companyFilter = isSuper ? {} : { companyId: { in: user.companyIds } };
+
+    const records = await prisma.companyManufacturer.findMany({
+      where: companyFilter,
+      include: {
+        company: {
+          select: { id: true, name: true, slug: true, accentColor: true },
+        },
+        manufacturer: {
+          select: { id: true, name: true, slug: true, logoUrl: true },
+        },
+      },
+      orderBy: [{ company: { name: "asc" } }, { manufacturer: { name: "asc" } }],
+    });
+
+    res.json({
+      success: true,
+      data: records,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+adminRouter.post("/company-manufacturers/toggle", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const user = req.user!;
+    const { companyId, manufacturerId, isAuthorized, partnershipDetails } =
+      toggleCompanyMfgSchema.parse(req.body);
+
+    if (!checkCompanyAccess(user, companyId)) {
+      throw new ApiError(403, "Forbidden: You cannot modify manufacturer authorization for this company");
+    }
+
+    const record = await prisma.companyManufacturer.upsert({
+      where: {
+        companyId_manufacturerId: {
+          companyId,
+          manufacturerId,
+        },
+      },
+      update: {
+        isAuthorized,
+        ...(partnershipDetails !== undefined ? { partnershipDetails } : {}),
+      },
+      create: {
+        companyId,
+        manufacturerId,
+        isAuthorized,
+        partnershipDetails: partnershipDetails || null,
+      },
+      include: {
+        company: {
+          select: { id: true, name: true, slug: true },
+        },
+        manufacturer: {
+          select: { id: true, name: true, slug: true },
+        },
+      },
+    });
+
+    memoryCache.clear();
+
+    res.json({
+      success: true,
+      message: `Brand '${record.manufacturer.name}' is now ${isAuthorized ? "authorized & visible" : "hidden"} for ${record.company.name}`,
+      data: record,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 adminRouter.get("/manufacturers", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const manufacturers = await prisma.manufacturer.findMany({
       include: {
+        companyManufacturers: {
+          include: {
+            company: {
+              select: { id: true, name: true, slug: true, accentColor: true },
+            },
+          },
+        },
         _count: {
           select: {
             products: true,

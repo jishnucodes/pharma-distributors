@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Lock, ArrowLeft, AlertCircle, ShieldCheck, User } from "lucide-react";
+import { Lock, ArrowLeft, AlertCircle, ShieldCheck, User, Loader2 } from "lucide-react";
 import { login } from "@/lib/api";
 
 export default function AdminLoginPage() {
@@ -97,9 +97,16 @@ export default function AdminLoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 shadow-xs transition-colors disabled:opacity-50"
+              className="w-full py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 shadow-xs transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              {loading ? "Authenticating..." : "Sign in to Dashboard"}
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin text-teal-400" />
+                  <span>Authenticating...</span>
+                </>
+              ) : (
+                <span>Sign in to Dashboard</span>
+              )}
             </button>
           </form>
 

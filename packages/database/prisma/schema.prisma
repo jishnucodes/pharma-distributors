@@ -133,6 +133,7 @@ model Product {
   @@index([name])
   @@index([manufacturerId])
   @@index([dosageForm])
+  @@index([manufacturerId, dosageForm])
 }
 
 model ProductIngredient {
@@ -150,6 +151,7 @@ model ProductIngredient {
   @@unique([productId, ingredientId])
   @@index([productId])
   @@index([ingredientId])
+  @@index([ingredientId, quantity])
 }
 
 model CompanyProduct {
@@ -171,6 +173,8 @@ model CompanyProduct {
   @@index([productId])
   @@index([isPublished])
   @@index([isFeatured])
+  @@index([companyId, isPublished])
+  @@index([companyId, isPublished, isFeatured])
 }
 
 model ProductCategory {
@@ -208,6 +212,7 @@ model Inquiry {
   @@index([productId])
   @@index([status])
   @@index([createdAt])
+  @@index([companyId, status, createdAt])
 }
 
 model User {

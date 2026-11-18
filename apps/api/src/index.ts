@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
+import compression from "compression";
 import rateLimit from "express-rate-limit";
 import path from "path";
 import { config } from "./config";
@@ -17,6 +18,9 @@ app.use(
     crossOriginResourcePolicy: { policy: "cross-origin" },
   })
 );
+
+// HTTP Compression (gzip / deflate) for lightning-fast JSON transfers
+app.use(compression());
 
 // Parse allowed origins from CORS_ORIGIN (supports comma-separated values)
 const allowedOrigins = config.corsOrigin
