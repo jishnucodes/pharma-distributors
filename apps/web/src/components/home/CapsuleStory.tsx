@@ -169,20 +169,20 @@ export function CapsuleStory({ lakshmi, kothottil }: { lakshmi: Company; kothott
         {/* Story text */}
         <Panel show={step === 0} place="intro">
           <p className="eyebrow !text-ink-soft text-xs sm:text-sm">Wholesale medicine distribution · Kerala</p>
-          <h1 className="mt-2 font-display text-[1.85rem] sm:text-5xl lg:text-7xl font-semibold leading-[1.08] tracking-tight text-ink">
+          <h1 className="mt-1.5 sm:mt-2 font-display text-[1.75rem] xs:text-[1.85rem] sm:text-5xl lg:text-7xl font-semibold leading-[1.08] tracking-tight text-ink">
             Two trusted distributors.
             <br />
             <span className="italic text-ink-soft">One easy enquiry.</span>
           </h1>
-          <p className="mt-2.5 max-w-md text-sm sm:text-lg leading-relaxed text-ink-soft">
+          <p className="mt-2 sm:mt-2.5 max-w-sm sm:max-w-md text-xs xs:text-sm sm:text-lg leading-relaxed text-ink-soft">
             Browse the catalogues of {lakshmi.name} and {kothottil.name}, pick everything you need, and send it
             in one go.
           </p>
-          <div className="mt-4 sm:mt-6 flex flex-wrap gap-2 sm:gap-3">
-            <Link href={`/${lakshmi.slug}`} className="btn bg-lakshmi text-white hover:bg-lakshmi-deep min-h-[40px] px-3.5 text-xs sm:text-sm font-semibold shadow-xs">
+          <div className="mt-3.5 sm:mt-6 flex flex-wrap gap-2 sm:gap-3">
+            <Link href={`/${lakshmi.slug}`} className="btn bg-lakshmi text-white hover:bg-lakshmi-deep min-h-[38px] sm:min-h-[40px] px-3.5 text-xs sm:text-sm font-semibold shadow-xs">
               {lakshmi.shortName} Catalog
             </Link>
-            <Link href={`/${kothottil.slug}`} className="btn bg-kothottil text-white hover:bg-kothottil-deep min-h-[40px] px-3.5 text-xs sm:text-sm font-semibold shadow-xs">
+            <Link href={`/${kothottil.slug}`} className="btn bg-kothottil text-white hover:bg-kothottil-deep min-h-[38px] sm:min-h-[40px] px-3.5 text-xs sm:text-sm font-semibold shadow-xs">
               {kothottil.shortName} Catalog
             </Link>
           </div>
@@ -261,9 +261,9 @@ export function CapsuleStory({ lakshmi, kothottil }: { lakshmi: Company; kothott
         </div>
 
         {step === 0 && (
-          <div className="pointer-events-none absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 flex-col items-center gap-1 text-xs sm:text-sm font-semibold text-ink-soft animate-bounce">
-            <span>Scroll to explore</span>
-            <ArrowDown className="h-3.5 w-3.5 sm:h-5 sm:w-5" />
+          <div className="pointer-events-none absolute bottom-3 sm:bottom-4 left-1/2 z-20 flex -translate-x-1/2 flex-col items-center gap-0.5 text-xs sm:text-sm font-semibold text-ink-soft animate-bounce">
+            <span className="text-[0.7rem] sm:text-xs">Scroll to explore</span>
+            <ArrowDown className="h-3 w-3 sm:h-5 sm:w-5" />
           </div>
         )}
       </div>
@@ -281,7 +281,7 @@ function Panel({
   children: React.ReactNode;
 }) {
   const position = {
-    intro: "inset-x-0 top-[84px] px-4 sm:top-1/2 sm:-translate-y-1/2 sm:px-10 lg:px-16 sm:max-w-[34rem] lg:max-w-[40rem]",
+    intro: "inset-x-0 top-[78px] px-3.5 sm:top-1/2 sm:-translate-y-1/2 sm:px-10 lg:px-16 sm:max-w-[34rem] lg:max-w-[40rem]",
     bottom:
       "inset-x-0 bottom-0 flex flex-col items-center bg-gradient-to-t from-paper via-paper/90 to-transparent px-4 pb-8 pt-12 text-center sm:pb-14",
     side: "inset-x-0 bottom-0 p-3 sm:inset-x-auto sm:left-6 sm:top-1/2 sm:bottom-auto sm:-translate-y-1/2 sm:p-0 lg:left-16 sm:w-[26rem]",

@@ -42,7 +42,7 @@ function stages(narrow: boolean): StageState[] {
   if (narrow) {
     // Portrait: text sits in the top or bottom third, model in the remaining space
     return [
-      { cap: P([0, -1.75, 0], [0.25, 0, -0.5], 0.8), body: P([0, -1.75, 0], [0.25, 0, -0.5], 0.8), spread: 0, cloud: [0, -1.75, 0] },
+      { cap: P([0, -1.15, 0], [0.25, 0, -0.5], 0.78), body: P([0, -1.15, 0], [0.25, 0, -0.5], 0.78), spread: 0, cloud: [0, -1.15, 0] },
       { cap: P([0, 1.32, 0], [0.2, 0, 0], 0.8), body: P([0, 0.42, 0], [0.2, 0, 0], 0.8), spread: 0.8, cloud: [0, 0.9, -0.5] },
       { cap: P([-0.95, 1.55, 0.6], [0.35, 0, -HALF_PI + 0.3], 1.05), body: P([6, -9, -8], [0, 0, 0.6]), spread: 0.55, cloud: [0, 1.2, -1] },
       { cap: P([-6, 9, -8], [0, 0, -0.6]), body: P([0.95, 1.55, 0.6], [0.35, 0, -HALF_PI - 0.3], 1.05), spread: 0.55, cloud: [0, 1.2, -1] },
