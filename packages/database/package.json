@@ -11,6 +11,8 @@
     "push:sqlite": "prisma db push --schema=prisma/schema.sqlite.prisma",
     "migrate": "prisma migrate dev --schema=prisma/schema.prisma",
     "seed": "tsx prisma/seed.ts",
+    "seed:alkem": "tsx scripts/seed-alkem-products.ts",
+    "delete:alkem": "tsx scripts/delete-alkem-products.ts",
     "reseed:rhine-single": "tsx scripts/reseed-rhine-master-303.ts",
     "seed:rhine-group": "tsx scripts/seed-rhine-group-master.ts",
     "import:products": "tsx scripts/import-brand-products.ts",

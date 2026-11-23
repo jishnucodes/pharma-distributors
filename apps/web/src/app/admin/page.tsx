@@ -348,7 +348,7 @@ export default function AdminDashboardPage() {
   const handleOpenEditProduct = (prod: any) => {
     setEditingProduct(prod);
     const lakshmiListing = prod.companyProducts?.find((cp: any) => cp.company?.slug === "lakshmi-pharma");
-    const kothittilListing = prod.companyProducts?.find((cp: any) => cp.company?.slug === "kothittil-pharma");
+    const kothittilListing = prod.companyProducts?.find((cp: any) => cp.company?.slug === "kothittil-pharma" || cp.company?.slug === "kothottil-pharma");
     const defaultListing = lakshmiListing || kothittilListing || prod.companyProducts?.[0];
 
     setProductForm({
@@ -1133,7 +1133,7 @@ export default function AdminDashboardPage() {
                       (c: any) => c.slug === "lakshmi-pharma"
                     );
                     const kothittilCompany = overviewData?.companies?.find(
-                      (c: any) => c.slug === "kothittil-pharma"
+                      (c: any) => c.slug === "kothittil-pharma" || c.slug === "kothottil-pharma"
                     );
 
                     // Find authorization records
@@ -1480,14 +1480,14 @@ export default function AdminDashboardPage() {
                             (cp: any) => cp.company?.slug === "lakshmi-pharma"
                           );
                           const kothittilListing = prod.companyProducts?.find(
-                            (cp: any) => cp.company?.slug === "kothittil-pharma"
+                            (cp: any) => cp.company?.slug === "kothittil-pharma" || cp.company?.slug === "kothottil-pharma"
                           );
 
                           const lakshmiCompany = overviewData?.companies?.find(
                             (c: any) => c.slug === "lakshmi-pharma"
                           );
                           const kothittilCompany = overviewData?.companies?.find(
-                            (c: any) => c.slug === "kothittil-pharma"
+                            (c: any) => c.slug === "kothittil-pharma" || c.slug === "kothottil-pharma"
                           );
 
                           const isLakshmiListingUpdating =

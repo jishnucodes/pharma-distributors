@@ -58,12 +58,24 @@ companyRouter.get("/", async (req: Request, res: Response, next: NextFunction) =
   }
 });
 
-// Helper to find company by slug
+// Helper to find company by slug (handles canonical and phonetic alias variations)
+function getCandidateSlugs(slug: string): string[] {
+  const s = slug.toLowerCase().trim();
+  if (s === "kothottil-pharma" || s === "kothittil-pharma" || s === "kothootil-pharma") {
+    return ["kothottil-pharma", "kothittil-pharma", "kothootil-pharma"];
+  }
+  return [s];
+}
+
 async function getCompanyBySlug(slug: string) {
-  const company = await prisma.company.findUnique({
-    where: { slug },
+  const candidates = getCandidateSlugs(slug);
+  const company = await prisma.company.findFirst({
+    where: {
+      slug: { in: candidates },
+      isActive: true,
+    },
   });
-  if (!company || !company.isActive) {
+  if (!company) {
     throw new ApiError(404, `Company '${slug}' not found or inactive`);
   }
   return company;
