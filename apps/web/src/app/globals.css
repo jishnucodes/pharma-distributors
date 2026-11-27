@@ -44,10 +44,12 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
-:focus-visible {
-  outline: 3px solid rgb(var(--accent));
-  outline-offset: 3px;
-  border-radius: 6px;
+@layer base {
+  :focus-visible:not(input):not(textarea):not(select) {
+    outline: 3px solid rgb(var(--accent));
+    outline-offset: 3px;
+    border-radius: 6px;
+  }
 }
 
 ::selection {

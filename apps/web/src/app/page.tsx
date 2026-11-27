@@ -39,7 +39,7 @@ export default async function HomePage() {
         <CapsuleStory lakshmi={lakshmi} kothottil={kothottil} />
 
         {/* Choose a distributor */}
-        <section id="choose" className="scroll-mt-16 py-10 sm:py-20">
+        {/* <section id="choose" className="scroll-mt-16 py-10 sm:py-20">
           <div className="container-x">
             <p className="eyebrow !text-ink-soft text-xs sm:text-sm">Step inside</p>
             <h2 className="mt-1.5 max-w-2xl font-display text-2xl font-semibold leading-tight tracking-tight sm:text-4xl lg:text-5xl">
@@ -54,7 +54,7 @@ export default async function HomePage() {
               ))}
             </div>
           </div>
-        </section>
+        </section> */}
 
         {/* How enquiry works */}
         <section className="border-y border-line bg-white py-16 sm:py-24">

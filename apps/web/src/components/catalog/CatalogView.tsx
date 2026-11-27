@@ -118,7 +118,7 @@ export function CatalogView({ company }: { company: Company }) {
       <p className="mt-2 text-lg text-ink-soft">Search by brand name, salt (composition) or strength.</p>
 
       {/* Search */}
-      <div className="sticky top-[100px] sm:top-[106px] z-30 -mx-3.5 sm:-mx-4 mt-4 sm:mt-5 bg-paper/95 px-3.5 sm:px-4 py-2.5 sm:py-3 backdrop-blur-md border-b border-line/60 sm:border-0 sm:mx-0 sm:px-0">
+      <div className="sticky top-[100px] sm:top-[106px] z-30 -mx-3.5 mt-4 sm:mt-5 bg-paper/95 px-3.5 py-2.5 sm:py-3 backdrop-blur-md border-b border-line/60 sm:border-0 sm:mx-0 sm:px-0">
         <form
           role="search"
           onSubmit={(e) => {
@@ -127,10 +127,10 @@ export function CatalogView({ company }: { company: Company }) {
           }}
           className="flex gap-2"
         >
-          <div className="flex min-w-0 flex-1 items-center gap-2 rounded-full border-2 border-line bg-white pl-3.5 sm:pl-4 pr-1.5 shadow-card focus-within:border-accent">
-            <Search className="h-5 w-5 sm:h-6 sm:w-6 shrink-0 text-ink-mute" aria-hidden="true" />
-            <label htmlFor="catalog-q" className="sr-only">
-              Search products
+          <div className="flex min-w-0 flex-1 items-center gap-2 rounded-full border-2 border-line bg-white pl-3.5 sm:pl-4 pr-1.5 shadow-card transition-all duration-150 focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/20">
+            <label htmlFor="catalog-q" className="flex items-center cursor-pointer shrink-0">
+              <span className="sr-only">Search products</span>
+              <Search className="h-5 w-5 sm:h-6 sm:w-6 text-ink-mute" aria-hidden="true" />
             </label>
             <input
               id="catalog-q"
@@ -138,7 +138,8 @@ export function CatalogView({ company }: { company: Company }) {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search brand, salt, formulation..."
-              className="h-[46px] sm:h-[52px] min-w-0 flex-1 bg-transparent text-base sm:text-lg outline-none placeholder:text-ink-mute"
+              className="h-[46px] sm:h-[52px] min-w-0 flex-1 bg-transparent text-base sm:text-lg border-0 outline-none focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 placeholder:text-ink-mute"
+              style={{ outline: "none", boxShadow: "none" }}
               autoComplete="off"
             />
             {loading && (

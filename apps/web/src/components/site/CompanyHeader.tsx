@@ -169,14 +169,14 @@ export function CompanyHeader({ company }: { company: Company }) {
         {/* Right Controls: Search, Enquiry List CTA & Mobile Menu Toggle */}
         <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
           {/* Search Catalogue Shortcut */}
-          <Link
+          {/* <Link
             href={`/${company.slug}/products`}
             className="hidden md:inline-flex items-center gap-2 rounded-full border border-line bg-white/90 px-3.5 py-1.5 text-xs font-semibold text-ink-soft shadow-xs hover:border-ink/20 hover:text-ink hover:bg-white transition-all"
             title="Search medicines and products"
           >
             <Search className="h-3.5 w-3.5 text-ink-mute" />
             <span>Search catalogue</span>
-          </Link>
+          </Link> */}
 
           {/* Primary Enquiry List CTA */}
           <button
@@ -214,13 +214,14 @@ export function CompanyHeader({ company }: { company: Company }) {
           <div className="space-y-4">
             {/* Search Input Shortcut */}
             <form action={`/${company.slug}/products`} role="search" onSubmit={() => setMobileMenuOpen(false)}>
-              <div className="flex items-center gap-2 rounded-xl border border-line bg-white px-3 py-2 shadow-xs focus-within:border-accent">
+              <div className="flex items-center gap-2 rounded-xl border border-line bg-white px-3 py-2 shadow-xs transition-all duration-150 focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/20">
                 <Search className="h-4 w-4 text-ink-mute shrink-0" />
                 <input
                   name="q"
                   type="search"
                   placeholder="Search medicines, salts, brands..."
-                  className="w-full bg-transparent text-sm outline-none placeholder:text-ink-mute"
+                  className="w-full bg-transparent text-sm border-0 outline-none focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 placeholder:text-ink-mute"
+                  style={{ outline: "none", boxShadow: "none" }}
                 />
                 <button type="submit" className="rounded-lg bg-accent px-2.5 py-1 text-xs font-semibold text-white">
                   Search

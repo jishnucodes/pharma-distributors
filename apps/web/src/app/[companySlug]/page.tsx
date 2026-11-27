@@ -3,7 +3,7 @@ import { ArrowRight, Search, Phone, MessageCircle, Clock, MapPin, ShieldCheck } 
 import { fetchCompanyFilterMeta, fetchManufacturers } from "@/lib/api";
 import { companyColor, featuredToProduct, telHref, whatsappHref } from "@/lib/companies";
 import { getCompany } from "@/lib/server";
-import { DoseViewer } from "@/components/three/DoseViewer";
+import { DistributorHero3D } from "@/components/three/DistributorHero3D";
 import { ProductTable } from "@/components/catalog/ProductTable";
 import { ManufacturerLogo } from "@/components/common/ManufacturerLogo";
 import { DoseIcon } from "@/components/ui/DoseIcon";
@@ -31,10 +31,12 @@ export default async function CompanyOverviewPage({ params }: { params: { compan
           style={{ background: `radial-gradient(ellipse at 78% 40%, ${color.soft}, transparent 62%)` }}
         />
         <div className="container-x grid items-center gap-4 pb-8 pt-4 sm:pb-12 sm:pt-6 md:grid-cols-[1.1fr_1fr] md:gap-10 md:pb-20 md:pt-14">
-          <DoseViewer
+          <DistributorHero3D
             accent={color.main}
-            hint={false}
-            className="order-first -mx-4 h-[200px] sm:h-[320px] md:order-last md:mx-0 md:h-[460px]"
+            accentDeep={color.deep}
+            accentSoft={color.soft}
+            companyName={company.shortName}
+            className="order-first -mx-4 h-[220px] sm:h-[320px] md:order-last md:mx-0 md:h-[460px]"
           />
           <div className="min-w-0">
             <p className="eyebrow flex items-center gap-2 text-xs sm:text-sm">
@@ -49,14 +51,17 @@ export default async function CompanyOverviewPage({ params }: { params: { compan
               <label htmlFor="hero-q" className="text-sm sm:text-base font-semibold block">
                 Find a medicine
               </label>
-              <div className="mt-2 flex gap-1.5 sm:gap-2 rounded-full border-2 border-line bg-white p-1 sm:p-1.5 shadow-card focus-within:border-accent">
-                <Search className="ml-2.5 sm:ml-3 h-5 w-5 sm:h-6 sm:w-6 shrink-0 self-center text-ink-mute" aria-hidden="true" />
+              <div className="mt-2 flex gap-1.5 sm:gap-2 rounded-full border-2 border-line bg-white p-1 sm:p-1.5 shadow-card transition-all duration-150 focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/20">
+                <label htmlFor="hero-q" className="flex items-center cursor-pointer shrink-0">
+                  <Search className="ml-2.5 sm:ml-3 h-5 w-5 sm:h-6 sm:w-6 text-ink-mute" aria-hidden="true" />
+                </label>
                 <input
                   id="hero-q"
                   name="q"
                   type="search"
                   placeholder="Brand or salt, e.g. Bisoprolol"
-                  className="min-w-0 flex-1 bg-transparent text-base sm:text-lg outline-none placeholder:text-ink-mute"
+                  className="min-w-0 flex-1 bg-transparent text-base sm:text-lg border-0 outline-none focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 placeholder:text-ink-mute"
+                  style={{ outline: "none", boxShadow: "none" }}
                 />
                 <button type="submit" className="btn-primary !min-h-[40px] sm:!min-h-[48px] !px-4 sm:!px-5 !text-xs sm:!text-base shrink-0 font-bold">
                   Search
