@@ -30,6 +30,14 @@ import {
   Trash2,
   Tag,
   Loader2,
+  Users,
+  UserPlus,
+  Key,
+  MapPin,
+  Calendar,
+  Clock,
+  Truck,
+  UserCheck,
 } from "lucide-react";
 import { AuthUser, Inquiry } from "@/types";
 import {
@@ -48,6 +56,10 @@ import {
   fetchAdminIngredients,
   saveIngredient,
   updateCompanyProfile,
+  fetchAdminCompanyRoutes,
+  createAdminCompanyRoute,
+  updateAdminCompanyRoute,
+  deleteAdminCompanyRoute,
 } from "@/lib/api";
 import { ManufacturerLogo } from "@/components/common/ManufacturerLogo";
 
@@ -151,6 +163,118 @@ export default function AdminDashboardPage() {
     description: "",
     aliasesText: "",
   });
+
+  // Field Representative & Delivery Route Management State
+  const [companyRoutes, setCompanyRoutes] = useState<any[]>([]);
+  const [routesLoading, setRoutesLoading] = useState(false);
+  const [routeModalOpen, setRouteModalOpen] = useState(false);
+  const [editingRouteId, setEditingRouteId] = useState<string | null>(null);
+  const [routeSearchQuery, setRouteSearchQuery] = useState("");
+  const [savingRoute, setSavingRoute] = useState(false);
+  const [deletingRouteId, setDeletingRouteId] = useState<string | null>(null);
+  const [routeForm, setRouteForm] = useState({
+    personName: "",
+    designation: "Field Sales Officer",
+    phone: "",
+    email: "",
+    routeAreas: "",
+    schedule: "Monday, Wednesday, Friday",
+    mapUrl: "",
+    notes: "",
+    orderIndex: 0,
+    isActive: true,
+  });
+
+  // Load Company Routes
+  const loadCompanyRoutes = async (compId: string) => {
+    const t = token || localStorage.getItem("lk_auth_token");
+    if (!t || !compId) return;
+    setRoutesLoading(true);
+    try {
+      const data = await fetchAdminCompanyRoutes(t, compId);
+      setCompanyRoutes(data || []);
+    } catch (err: any) {
+      console.error(err);
+      showStatus("error", err.message || "Failed to load company routes");
+    } finally {
+      setRoutesLoading(false);
+    }
+  };
+
+  const handleOpenAddRoute = () => {
+    setEditingRouteId(null);
+    setRouteForm({
+      personName: "",
+      designation: "Field Sales Officer",
+      phone: "",
+      email: "",
+      routeAreas: "",
+      schedule: "Monday, Wednesday, Friday",
+      mapUrl: "",
+      notes: "",
+      orderIndex: companyRoutes.length + 1,
+      isActive: true,
+    });
+    setRouteModalOpen(true);
+  };
+
+  const handleOpenEditRoute = (r: any) => {
+    setEditingRouteId(r.id);
+    setRouteForm({
+      personName: r.personName || "",
+      designation: r.designation || "",
+      phone: r.phone || "",
+      email: r.email || "",
+      routeAreas: r.routeAreas || "",
+      schedule: r.schedule || "",
+      mapUrl: r.mapUrl || "",
+      notes: r.notes || "",
+      orderIndex: r.orderIndex ?? 1,
+      isActive: r.isActive ?? true,
+    });
+    setRouteModalOpen(true);
+  };
+
+  const handleSaveRoute = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const t = token || localStorage.getItem("lk_auth_token");
+    if (!t || !selectedCompanyId) return;
+
+    setSavingRoute(true);
+    try {
+      if (editingRouteId) {
+        await updateAdminCompanyRoute(t, selectedCompanyId, editingRouteId, routeForm);
+        showStatus("success", `Updated route representative for ${routeForm.personName}`);
+      } else {
+        await createAdminCompanyRoute(t, selectedCompanyId, routeForm);
+        showStatus("success", `Added route representative ${routeForm.personName}`);
+      }
+      setRouteModalOpen(false);
+      await loadCompanyRoutes(selectedCompanyId);
+    } catch (err: any) {
+      showStatus("error", err.message || "Failed to save route representative");
+    } finally {
+      setSavingRoute(false);
+    }
+  };
+
+  const handleDeleteRoute = async (r: any) => {
+    const t = token || localStorage.getItem("lk_auth_token");
+    if (!t || !selectedCompanyId) return;
+    const ok = window.confirm(`Are you sure you want to delete route beat for "${r.personName}"?`);
+    if (!ok) return;
+
+    setDeletingRouteId(r.id);
+    try {
+      await deleteAdminCompanyRoute(t, selectedCompanyId, r.id);
+      showStatus("success", `Deleted route beat for ${r.personName}`);
+      await loadCompanyRoutes(selectedCompanyId);
+    } catch (err: any) {
+      showStatus("error", err.message || "Failed to delete route representative");
+    } finally {
+      setDeletingRouteId(null);
+    }
+  };
 
   // 1. Initial Auth Check
   useEffect(() => {
@@ -283,6 +407,7 @@ export default function AdminDashboardPage() {
       drugLicenseNo: company.drugLicenseNo || "",
       gstin: company.gstin || "",
     });
+    loadCompanyRoutes(company.id);
   };
 
   const showStatus = (type: "success" | "error", text: string) => {
@@ -305,6 +430,7 @@ export default function AdminDashboardPage() {
     if (tab === "brand_matrix") loadManufacturers();
     if (tab === "manufacturers") loadManufacturers();
     if (tab === "ingredients") loadIngredients();
+    if (tab === "company_profile" && selectedCompanyId) loadCompanyRoutes(selectedCompanyId);
   };
 
   // Inquiry Update
@@ -632,8 +758,8 @@ export default function AdminDashboardPage() {
           }`}
         >
           <Building2 className="w-3.5 h-3.5" />
-          <span>Profiles</span>
-          {savingCompanyProfile && <Loader2 className="w-3 h-3 animate-spin text-teal-400" />}
+          <span>Profiles &amp; Route Maps</span>
+          {(savingCompanyProfile || routesLoading) && <Loader2 className="w-3 h-3 animate-spin text-teal-400" />}
         </button>
 
         {isSuper && (
@@ -762,9 +888,9 @@ export default function AdminDashboardPage() {
           >
             <div className="flex items-center gap-2.5">
               <Building2 className="w-4 h-4" />
-              <span>Company Profiles</span>
+              <span>Profiles &amp; Route Maps</span>
             </div>
-            {savingCompanyProfile && <Loader2 className="w-3.5 h-3.5 animate-spin text-teal-400 shrink-0" />}
+            {(savingCompanyProfile || routesLoading) && <Loader2 className="w-3.5 h-3.5 animate-spin text-teal-400 shrink-0" />}
           </button>
 
           {isSuper && (
@@ -2329,6 +2455,428 @@ export default function AdminDashboardPage() {
                   </button>
                 </div>
               </form>
+
+              {/* ============================================================ */}
+              {/* SECTION: FIELD REPRESENTATIVES & DELIVERY ROUTE MAP (BEAT PLAN) */}
+              {/* ============================================================ */}
+              <div className="pt-6 border-t border-slate-200 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <Truck className="w-5 h-5 text-indigo-600" />
+                      <h3 className="text-lg font-bold text-slate-900 tracking-tight">
+                        Field Representatives &amp; Delivery Route Map
+                      </h3>
+                      {routesLoading && <Loader2 className="w-4 h-4 animate-spin text-teal-600" />}
+                    </div>
+                    <p className="text-slate-500 text-xs mt-0.5">
+                      Configure designated sales representatives, medical officers, and delivery beat schedules for {companyProfileForm.name || "this distributor"}.
+                      These details appear directly on the distributor&apos;s public route schedule.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleOpenAddRoute}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-xs transition-colors shrink-0"
+                    >
+                      <Plus className="w-3.5 h-3.5 text-teal-400" />
+                      <span>Add Route Representative</span>
+                    </button>
+                    {selectedCompanyId && (
+                      <Link
+                        href={`/${overviewData?.companies?.find((c: any) => c.id === selectedCompanyId)?.slug || "lakshmi-pharma"}/routes`}
+                        target="_blank"
+                        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold transition-colors shrink-0"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5 text-slate-500" />
+                        <span>View Live Route Schedule</span>
+                      </Link>
+                    )}
+                  </div>
+                </div>
+
+                {/* Filter / Search Bar */}
+                <div className="flex items-center gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                  <Search className="w-4 h-4 text-slate-400 shrink-0 ml-1" />
+                  <input
+                    type="text"
+                    value={routeSearchQuery}
+                    onChange={(e) => setRouteSearchQuery(e.target.value)}
+                    placeholder="Search representative name, beat territory, schedule, or contact number..."
+                    className="w-full bg-transparent text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none"
+                  />
+                  {routeSearchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setRouteSearchQuery("")}
+                      className="text-xs text-slate-400 hover:text-slate-700 font-semibold px-1"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+
+                {/* Route Cards List */}
+                {routesLoading ? (
+                  <div className="py-12 text-center text-slate-400 flex items-center justify-center gap-2 text-xs">
+                    <Loader2 className="w-4 h-4 animate-spin text-teal-500" />
+                    <span>Loading route representatives...</span>
+                  </div>
+                ) : companyRoutes.length === 0 ? (
+                  <div className="py-10 px-4 text-center rounded-xl border border-dashed border-slate-200 bg-slate-50/50">
+                    <MapPin className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                    <p className="text-xs font-bold text-slate-700">No route representatives configured yet</p>
+                    <p className="text-[11px] text-slate-500 mt-1 max-w-sm mx-auto">
+                      Add territory sales executives, medical representatives, or scheduled delivery beats for this distributor.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleOpenAddRoute}
+                      className="mt-3 inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-slate-900 text-white font-bold text-xs"
+                    >
+                      <Plus className="w-3 h-3 text-teal-400" />
+                      <span>Add First Route</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                    {companyRoutes
+                      .filter((r) => {
+                        if (!routeSearchQuery.trim()) return true;
+                        const q = routeSearchQuery.toLowerCase();
+                        return (
+                          (r.personName || "").toLowerCase().includes(q) ||
+                          (r.designation || "").toLowerCase().includes(q) ||
+                          (r.routeAreas || "").toLowerCase().includes(q) ||
+                          (r.schedule || "").toLowerCase().includes(q) ||
+                          (r.phone || "").toLowerCase().includes(q)
+                        );
+                      })
+                      .map((route, idx) => (
+                        <div
+                          key={route.id}
+                          className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs hover:border-slate-300 flex flex-col justify-between transition-all"
+                        >
+                          <div className="space-y-3">
+                            {/* Person Top Row */}
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex items-center gap-2.5">
+                                <div className="w-8 h-8 rounded-lg bg-slate-900 text-white font-bold text-xs grid place-items-center shrink-0">
+                                  {route.personName.charAt(0)}
+                                </div>
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <h4 className="font-bold text-slate-900 text-sm">
+                                      {route.personName}
+                                    </h4>
+                                    <span
+                                      className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                                        route.isActive
+                                          ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                          : "bg-slate-100 text-slate-500"
+                                      }`}
+                                    >
+                                      {route.isActive ? "Active Beat" : "Inactive"}
+                                    </span>
+                                  </div>
+                                  <p className="text-[11px] font-semibold text-slate-500">
+                                    {route.designation || "Field Representative"}
+                                  </p>
+                                </div>
+                              </div>
+
+                              <span className="text-[10px] font-mono font-bold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
+                                #{route.orderIndex || idx + 1}
+                              </span>
+                            </div>
+
+                            {/* Territory */}
+                            <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100 space-y-1.5 text-xs">
+                              <div className="flex items-start gap-1.5">
+                                <MapPin className="w-3.5 h-3.5 text-teal-600 shrink-0 mt-0.5" />
+                                <div className="min-w-0">
+                                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Territory Covered</span>
+                                  {route.routeAreas.includes("->") ? (
+                                    <div className="mt-1 flex flex-wrap items-center gap-1">
+                                      {route.routeAreas.split("->").map((stop: string, sIdx: number, arr: string[]) => (
+                                        <React.Fragment key={sIdx}>
+                                          <span className="inline-flex items-center px-2 py-0.5 rounded bg-white border border-slate-200 text-xs font-semibold text-slate-800">
+                                            {stop.trim()}
+                                          </span>
+                                          {sIdx < arr.length - 1 && (
+                                            <span className="text-teal-600 font-bold text-xs">→</span>
+                                          )}
+                                        </React.Fragment>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <p className="text-slate-800 font-medium leading-snug">{route.routeAreas}</p>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="flex items-start gap-1.5 pt-1 border-t border-slate-200/60">
+                                <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
+                                <div className="min-w-0">
+                                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Visit Schedule</span>
+                                  <p className="text-slate-800 font-bold">{route.schedule}</p>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Contact & Map */}
+                            <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600">
+                              <span className="flex items-center gap-1 font-semibold text-slate-800">
+                                <Phone className="w-3 h-3 text-emerald-600" />
+                                {route.phone}
+                              </span>
+                              {route.email && (
+                                <span className="flex items-center gap-1 text-slate-500">
+                                  <Mail className="w-3 h-3 text-slate-400" />
+                                  {route.email}
+                                </span>
+                              )}
+                              {route.mapUrl && (
+                                <a
+                                  href={route.mapUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 text-indigo-600 hover:underline font-semibold"
+                                >
+                                  <ExternalLink className="w-3 h-3" />
+                                  <span>Map Link</span>
+                                </a>
+                              )}
+                            </div>
+
+                            {route.notes && (
+                              <p className="text-[11px] text-amber-800 bg-amber-50 p-2 rounded-lg border border-amber-200/60">
+                                <strong>Note:</strong> {route.notes}
+                              </p>
+                            )}
+                          </div>
+
+                          {/* Action Row */}
+                          <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-end gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEditRoute(route)}
+                              className="px-2.5 py-1 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center gap-1 transition-colors"
+                            >
+                              <Edit2 className="w-3 h-3 text-slate-500" />
+                              <span>Edit</span>
+                            </button>
+                            <button
+                              type="button"
+                              disabled={deletingRouteId === route.id}
+                              onClick={() => handleDeleteRoute(route)}
+                              className="px-2.5 py-1 rounded-lg border border-rose-200 hover:bg-rose-50 text-rose-600 text-xs font-semibold flex items-center gap-1 transition-colors disabled:opacity-50"
+                            >
+                              {deletingRouteId === route.id ? (
+                                <Loader2 className="w-3 h-3 animate-spin text-rose-500" />
+                              ) : (
+                                <Trash2 className="w-3 h-3 text-rose-500" />
+                              )}
+                              <span>Delete</span>
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ============================================================ */}
+          {/* MODAL: ADD / EDIT ROUTE REPRESENTATIVE                       */}
+          {/* ============================================================ */}
+          {routeModalOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
+              <div className="bg-white w-full max-w-xl rounded-2xl border border-slate-200 shadow-xl overflow-hidden my-6">
+                <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                  <div>
+                    <h3 className="font-bold text-slate-900 text-base">
+                      {editingRouteId ? "Edit Route Representative" : "Add Route Representative"}
+                    </h3>
+                    <p className="text-xs text-slate-500">
+                      Configure territory route coverage and contact details for {companyProfileForm.name || "this distributor"}.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setRouteModalOpen(false)}
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <form onSubmit={handleSaveRoute} className="p-5 space-y-4 text-xs">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    <div className="space-y-1 sm:col-span-1">
+                      <label className="font-semibold text-slate-700 block">
+                        Representative Full Name *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={routeForm.personName}
+                        onChange={(e) => setRouteForm({ ...routeForm, personName: e.target.value })}
+                        placeholder="e.g. Rajesh Kumar"
+                        className="w-full h-9 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 focus:ring-2 focus:ring-teal-500"
+                      />
+                    </div>
+
+                    <div className="space-y-1 sm:col-span-1">
+                      <label className="font-semibold text-slate-700 block">
+                        Role / Designation *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={routeForm.designation}
+                        onChange={(e) => setRouteForm({ ...routeForm, designation: e.target.value })}
+                        placeholder="e.g. Senior Field Sales Officer"
+                        className="w-full h-9 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 focus:ring-2 focus:ring-teal-500"
+                      />
+                    </div>
+
+                    <div className="space-y-1 sm:col-span-1">
+                      <label className="font-semibold text-slate-700 block">
+                        Contact Phone *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={routeForm.phone}
+                        onChange={(e) => setRouteForm({ ...routeForm, phone: e.target.value })}
+                        placeholder="e.g. +91 98471 23456"
+                        className="w-full h-9 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 font-mono focus:ring-2 focus:ring-teal-500"
+                      />
+                    </div>
+
+                    <div className="space-y-1 sm:col-span-1">
+                      <label className="font-semibold text-slate-700 block">
+                        Email Address (Optional)
+                      </label>
+                      <input
+                        type="email"
+                        value={routeForm.email}
+                        onChange={(e) => setRouteForm({ ...routeForm, email: e.target.value })}
+                        placeholder="rajesh.sales@lakshmipharma.demo"
+                        className="w-full h-9 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 focus:ring-2 focus:ring-teal-500"
+                      />
+                    </div>
+
+                    <div className="space-y-1 sm:col-span-2">
+                      <label className="font-semibold text-slate-700 block">
+                        Territory &amp; Areas Covered *
+                      </label>
+                      <textarea
+                        rows={2}
+                        required
+                        value={routeForm.routeAreas}
+                        onChange={(e) => setRouteForm({ ...routeForm, routeAreas: e.target.value })}
+                        placeholder="e.g. Ernakulam City, Aluva, Angamaly, Nedumbassery, Kalamassery Clinics"
+                        className="w-full p-2.5 rounded-lg border border-slate-300 text-xs text-slate-900 focus:ring-2 focus:ring-teal-500"
+                      />
+                    </div>
+
+                    <div className="space-y-1 sm:col-span-2">
+                      <label className="font-semibold text-slate-700 block">
+                        Visit Schedule &amp; Timings *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={routeForm.schedule}
+                        onChange={(e) => setRouteForm({ ...routeForm, schedule: e.target.value })}
+                        placeholder="e.g. Monday, Wednesday, Friday (9:30 AM - 5:30 PM)"
+                        className="w-full h-9 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 focus:ring-2 focus:ring-teal-500"
+                      />
+                    </div>
+
+                    <div className="space-y-1 sm:col-span-2">
+                      <label className="font-semibold text-slate-700 block">
+                        Route Map URL (Optional Google Maps link)
+                      </label>
+                      <input
+                        type="url"
+                        value={routeForm.mapUrl}
+                        onChange={(e) => setRouteForm({ ...routeForm, mapUrl: e.target.value })}
+                        placeholder="https://maps.google.com/?q=..."
+                        className="w-full h-9 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 font-mono focus:ring-2 focus:ring-teal-500"
+                      />
+                    </div>
+
+                    <div className="space-y-1 sm:col-span-2">
+                      <label className="font-semibold text-slate-700 block">
+                        Special Instructions / Delivery Cutoff Notes (Optional)
+                      </label>
+                      <input
+                        type="text"
+                        value={routeForm.notes}
+                        onChange={(e) => setRouteForm({ ...routeForm, notes: e.target.value })}
+                        placeholder="e.g. Same-day emergency delivery cutoff 2:00 PM"
+                        className="w-full h-9 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 focus:ring-2 focus:ring-teal-500"
+                      />
+                    </div>
+
+                    <div className="space-y-1 sm:col-span-1">
+                      <label className="font-semibold text-slate-700 block">
+                        Display Order / Beat Sequence
+                      </label>
+                      <input
+                        type="number"
+                        value={routeForm.orderIndex}
+                        onChange={(e) => setRouteForm({ ...routeForm, orderIndex: parseInt(e.target.value, 10) || 0 })}
+                        className="w-full h-9 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 focus:ring-2 focus:ring-teal-500"
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-2 sm:col-span-1 pt-6">
+                      <label className="flex items-center gap-2 cursor-pointer font-semibold text-slate-700 text-xs">
+                        <input
+                          type="checkbox"
+                          checked={routeForm.isActive}
+                          onChange={(e) => setRouteForm({ ...routeForm, isActive: e.target.checked })}
+                          className="w-4 h-4 rounded text-teal-600 focus:ring-teal-500"
+                        />
+                        <span>Active Route Beat (Visible to public)</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-100">
+                    <button
+                      type="button"
+                      onClick={() => setRouteModalOpen(false)}
+                      className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-semibold"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={savingRoute}
+                      className="px-5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold shadow-sm flex items-center gap-1.5 disabled:opacity-50"
+                    >
+                      {savingRoute ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin text-teal-400" />
+                          <span>Saving Route...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Save className="w-3.5 h-3.5" />
+                          <span>{editingRouteId ? "Update Route" : "Save Route"}</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </form>
+              </div>
             </div>
           )}
 

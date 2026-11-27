@@ -53,6 +53,10 @@ export function SiteFooter({ companies }: { companies: Company[] }) {
                   <Link href={`/${c.slug}/contact`} className="underline-offset-4 hover:underline">
                     Contact
                   </Link>
+                  <Link href={`/${c.slug}/routes`} className="text-white font-bold underline-offset-4 hover:underline flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full" style={{ background: color.main }} />
+                    <span>Route Map</span>
+                  </Link>
                 </div>
                 {c.drugLicenseNo && <p className="mt-4 text-sm text-white/50">Drug licence: {c.drugLicenseNo}</p>}
               </section>
@@ -65,13 +69,21 @@ export function SiteFooter({ companies }: { companies: Company[] }) {
             © {new Date().getFullYear()} L&amp;K Pharma Network. Wholesale distribution under the Drugs &amp; Cosmetics
             Act. No direct sale to patients.
           </p>
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-3 sm:gap-4">
             <Link href="/" className="hover:text-white">
               Network Home
             </Link>
             <span>·</span>
+            <Link href="/lakshmi-pharma/routes" className="hover:text-white">
+              Lakshmi Route Map
+            </Link>
+            <span>·</span>
+            <Link href="/kothottil-pharma/routes" className="hover:text-white">
+              Kothottil Route Map
+            </Link>
+            <span>·</span>
             <Link href="/admin" className="hover:text-white">
-              Staff login
+              Master Admin
             </Link>
           </div>
         </div>

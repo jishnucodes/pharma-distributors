@@ -4,6 +4,7 @@ import { z } from "zod";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import * as bcrypt from "bcryptjs";
 import { ApiError } from "../middleware/errorHandler";
 import { requireAuth, requireSuperAdmin, checkCompanyAccess } from "../middleware/auth";
 import { memoryCache } from "../utils/cache";
@@ -206,6 +207,147 @@ adminRouter.put("/companies/:id", async (req: Request, res: Response, next: Next
       success: true,
       message: "Company profile updated successfully",
       data: updatedCompany,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// 3b. Company Field Representative & Delivery Routes Management
+const companyRouteSchema = z.object({
+  personName: z.string().min(1, "Person name is required"),
+  designation: z.string().optional().nullable(),
+  phone: z.string().min(1, "Phone number is required"),
+  email: z.string().optional().nullable(),
+  routeAreas: z.string().min(1, "Route / areas covered is required"),
+  schedule: z.string().min(1, "Schedule is required"),
+  mapUrl: z.string().optional().nullable(),
+  notes: z.string().optional().nullable(),
+  orderIndex: z.number().int().optional(),
+  isActive: z.boolean().optional(),
+});
+
+// List all routes for a company
+adminRouter.get("/companies/:id/routes", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const user = req.user!;
+    const { id } = req.params;
+
+    if (!checkCompanyAccess(user, id)) {
+      throw new ApiError(403, "Forbidden: You do not have permission to manage this company");
+    }
+
+    const routes = await prisma.companyRoute.findMany({
+      where: { companyId: id },
+      orderBy: [{ orderIndex: "asc" }, { createdAt: "asc" }],
+    });
+
+    res.json({
+      success: true,
+      data: routes,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Create new route representative for a company
+adminRouter.post("/companies/:id/routes", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const user = req.user!;
+    const { id } = req.params;
+
+    if (!checkCompanyAccess(user, id)) {
+      throw new ApiError(403, "Forbidden: You do not have permission to manage this company");
+    }
+
+    const body = companyRouteSchema.parse(req.body);
+    const newRoute = await prisma.companyRoute.create({
+      data: {
+        companyId: id,
+        personName: body.personName,
+        designation: body.designation || null,
+        phone: body.phone,
+        email: body.email && body.email.trim() ? body.email.trim() : null,
+        routeAreas: body.routeAreas,
+        schedule: body.schedule,
+        mapUrl: body.mapUrl && body.mapUrl.trim() ? body.mapUrl.trim() : null,
+        notes: body.notes && body.notes.trim() ? body.notes.trim() : null,
+        orderIndex: body.orderIndex ?? 0,
+        isActive: body.isActive ?? true,
+      },
+    });
+
+    memoryCache.clear();
+
+    res.status(201).json({
+      success: true,
+      message: "Route representative added successfully",
+      data: newRoute,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Update route representative for a company
+adminRouter.put("/companies/:id/routes/:routeId", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const user = req.user!;
+    const { id, routeId } = req.params;
+
+    if (!checkCompanyAccess(user, id)) {
+      throw new ApiError(403, "Forbidden: You do not have permission to manage this company");
+    }
+
+    const body = companyRouteSchema.partial().parse(req.body);
+    const updatedRoute = await prisma.companyRoute.update({
+      where: { id: routeId },
+      data: {
+        ...(body.personName !== undefined && { personName: body.personName }),
+        ...(body.designation !== undefined && { designation: body.designation || null }),
+        ...(body.phone !== undefined && { phone: body.phone }),
+        ...(body.email !== undefined && { email: body.email && body.email.trim() ? body.email.trim() : null }),
+        ...(body.routeAreas !== undefined && { routeAreas: body.routeAreas }),
+        ...(body.schedule !== undefined && { schedule: body.schedule }),
+        ...(body.mapUrl !== undefined && { mapUrl: body.mapUrl && body.mapUrl.trim() ? body.mapUrl.trim() : null }),
+        ...(body.notes !== undefined && { notes: body.notes && body.notes.trim() ? body.notes.trim() : null }),
+        ...(body.orderIndex !== undefined && { orderIndex: body.orderIndex }),
+        ...(body.isActive !== undefined && { isActive: body.isActive }),
+      },
+    });
+
+    memoryCache.clear();
+
+    res.json({
+      success: true,
+      message: "Route representative updated successfully",
+      data: updatedRoute,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Delete route representative for a company
+adminRouter.delete("/companies/:id/routes/:routeId", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const user = req.user!;
+    const { id, routeId } = req.params;
+
+    if (!checkCompanyAccess(user, id)) {
+      throw new ApiError(403, "Forbidden: You do not have permission to manage this company");
+    }
+
+    await prisma.companyRoute.delete({
+      where: { id: routeId },
+    });
+
+    memoryCache.clear();
+
+    res.json({
+      success: true,
+      message: "Route representative deleted successfully",
     });
   } catch (err) {
     next(err);
@@ -851,6 +993,291 @@ adminRouter.post("/ingredients", requireSuperAdmin, async (req: Request, res: Re
       success: true,
       message: "Ingredient & aliases saved",
       data: fullIngredient,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ==========================================
+// 12. STAFF & EMPLOYEE MANAGEMENT ENDPOINTS
+// ==========================================
+
+/**
+ * GET /api/admin/users
+ * Lists staff and company admin users.
+ * SuperAdmin sees all or filters by company; CompanyAdmin sees their company staff.
+ */
+adminRouter.get("/users", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const user = req.user!;
+    const isSuper = user.role === "SUPER_ADMIN";
+    const requestedCompanyId = req.query.companyId as string;
+
+    const where: any = {};
+
+    if (!isSuper) {
+      where.memberships = {
+        some: {
+          companyId: { in: user.companyIds },
+        },
+      };
+    } else if (requestedCompanyId && requestedCompanyId !== "ALL") {
+      where.memberships = {
+        some: {
+          companyId: requestedCompanyId,
+        },
+      };
+    }
+
+    const users = await prisma.user.findMany({
+      where,
+      orderBy: [{ role: "asc" }, { createdAt: "desc" }],
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        createdAt: true,
+        updatedAt: true,
+        memberships: {
+          select: {
+            company: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+                shortName: true,
+                accentColor: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const formatted = users.map((u) => ({
+      id: u.id,
+      name: u.name,
+      email: u.email,
+      role: u.role,
+      createdAt: u.createdAt,
+      updatedAt: u.updatedAt,
+      companies: u.memberships.map((m) => m.company),
+    }));
+
+    res.json({
+      success: true,
+      data: formatted,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * POST /api/admin/users
+ * Create a new staff or company admin user and assign to distributor company
+ */
+const createUserSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  email: z.string().email("Valid email address required"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  role: z.enum(["COMPANY_STAFF", "COMPANY_ADMIN"]),
+  companyId: z.string().min(1, "Company assignment is required"),
+});
+
+adminRouter.post("/users", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const currentUser = req.user!;
+    const body = createUserSchema.parse(req.body);
+
+    if (currentUser.role !== "SUPER_ADMIN" && !checkCompanyAccess(currentUser, body.companyId)) {
+      throw new ApiError(403, "You do not have permission to add staff to this company");
+    }
+
+    const existingUser = await prisma.user.findUnique({
+      where: { email: body.email.toLowerCase().trim() },
+    });
+
+    if (existingUser) {
+      throw new ApiError(409, `An account with email '${body.email}' already exists`);
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(body.password, salt);
+
+    const newUser = await prisma.user.create({
+      data: {
+        name: body.name.trim(),
+        email: body.email.toLowerCase().trim(),
+        passwordHash,
+        role: body.role,
+        memberships: {
+          create: {
+            companyId: body.companyId,
+          },
+        },
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        createdAt: true,
+        memberships: {
+          include: { company: true },
+        },
+      },
+    });
+
+    res.status(201).json({
+      success: true,
+      message: `Staff account created for ${newUser.name}`,
+      data: {
+        ...newUser,
+        companies: newUser.memberships.map((m) => m.company),
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * PATCH /api/admin/users/:id
+ * Edit staff details, company assignment, or reset password
+ */
+const updateUserSchema = z.object({
+  name: z.string().min(2).optional(),
+  email: z.string().email().optional(),
+  password: z.string().min(6).optional().or(z.literal("")),
+  role: z.enum(["COMPANY_STAFF", "COMPANY_ADMIN"]).optional(),
+  companyId: z.string().optional(),
+});
+
+adminRouter.patch("/users/:id", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const currentUser = req.user!;
+    const targetUserId = req.params.id;
+    const body = updateUserSchema.parse(req.body);
+
+    const targetUser = await prisma.user.findUnique({
+      where: { id: targetUserId },
+      include: { memberships: true },
+    });
+
+    if (!targetUser) {
+      throw new ApiError(404, "User account not found");
+    }
+
+    // Authorization check
+    if (currentUser.role !== "SUPER_ADMIN") {
+      const isTargetInSameCompany = targetUser.memberships.some((m) =>
+        currentUser.companyIds.includes(m.companyId)
+      );
+      if (!isTargetInSameCompany) {
+        throw new ApiError(403, "You do not have permission to manage this user");
+      }
+      if (body.companyId && !checkCompanyAccess(currentUser, body.companyId)) {
+        throw new ApiError(403, "You cannot assign staff to a company outside your jurisdiction");
+      }
+    }
+
+    const updateData: any = {};
+    if (body.name) updateData.name = body.name.trim();
+    if (body.email) updateData.email = body.email.toLowerCase().trim();
+    if (body.role) updateData.role = body.role;
+
+    if (body.password && body.password.trim().length >= 6) {
+      const salt = await bcrypt.genSalt(10);
+      updateData.passwordHash = await bcrypt.hash(body.password.trim(), salt);
+    }
+
+    const updated = await prisma.user.update({
+      where: { id: targetUserId },
+      data: updateData,
+    });
+
+    // Update company membership if companyId was changed
+    if (body.companyId) {
+      await prisma.companyMembership.deleteMany({
+        where: { userId: targetUserId },
+      });
+      await prisma.companyMembership.create({
+        data: {
+          userId: targetUserId,
+          companyId: body.companyId,
+        },
+      });
+    }
+
+    const fullUser = await prisma.user.findUnique({
+      where: { id: targetUserId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        createdAt: true,
+        updatedAt: true,
+        memberships: {
+          include: { company: true },
+        },
+      },
+    });
+
+    res.json({
+      success: true,
+      message: `User '${fullUser?.name}' updated successfully`,
+      data: {
+        ...fullUser,
+        companies: fullUser?.memberships.map((m) => m.company),
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * DELETE /api/admin/users/:id
+ * Remove staff or company admin member
+ */
+adminRouter.delete("/users/:id", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const currentUser = req.user!;
+    const targetUserId = req.params.id;
+
+    if (currentUser.id === targetUserId) {
+      throw new ApiError(400, "You cannot delete your own administrative account");
+    }
+
+    const targetUser = await prisma.user.findUnique({
+      where: { id: targetUserId },
+      include: { memberships: true },
+    });
+
+    if (!targetUser) {
+      throw new ApiError(404, "User account not found");
+    }
+
+    if (currentUser.role !== "SUPER_ADMIN") {
+      const isTargetInSameCompany = targetUser.memberships.some((m) =>
+        currentUser.companyIds.includes(m.companyId)
+      );
+      if (!isTargetInSameCompany) {
+        throw new ApiError(403, "You do not have permission to delete this user");
+      }
+    }
+
+    await prisma.user.delete({
+      where: { id: targetUserId },
+    });
+
+    res.json({
+      success: true,
+      message: `Staff member '${targetUser.name}' removed successfully`,
     });
   } catch (err) {
     next(err);

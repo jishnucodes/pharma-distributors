@@ -23,6 +23,7 @@ export function companyNav(slug: string) {
     { href: `/${slug}`, label: "Overview" },
     { href: `/${slug}/products`, label: "Products" },
     { href: `/${slug}/manufacturers`, label: "Manufacturers" },
+    { href: `/${slug}/routes`, label: "Route Map" },
     { href: `/${slug}/contact`, label: "Contact" },
   ];
 }
@@ -118,6 +119,15 @@ export function CompanyHeader({ company }: { company: Company }) {
               <span className="hidden xl:inline text-ink-mute">Order Desk:</span>
               <span className="font-semibold">{company.phone}</span>
             </a>
+
+            <Link
+              href={`/${company.slug}/routes`}
+              className="inline-flex items-center gap-1.5 font-semibold text-ink-soft hover:text-accent transition-colors px-2 py-0.5 rounded-full hover:bg-black/5 text-[0.72rem]"
+              title={`${company.shortName} Field Representatives & Delivery Routes`}
+            >
+              <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+              <span>Route Map</span>
+            </Link>
           </div>
         </div>
       </div>
@@ -290,6 +300,18 @@ export function CompanyHeader({ company }: { company: Company }) {
 
             {/* Contact & Network Hub Links */}
             <div className="pt-2 border-t border-line/60 flex flex-col gap-2">
+              <Link
+                href={`/${company.slug}/routes`}
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center justify-between rounded-xl bg-slate-900 px-3.5 py-2.5 text-xs font-bold text-white shadow-xs"
+              >
+                <span className="flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-accent" />
+                  <span>Field Route Map &amp; Beat Schedule</span>
+                </span>
+                <ChevronRight className="h-4 w-4 text-slate-400" />
+              </Link>
+
               <a
                 href={telHref(company.phone)}
                 className="flex items-center justify-between rounded-xl border border-line bg-white px-3 py-2 text-xs font-semibold text-ink hover:bg-paper/50"

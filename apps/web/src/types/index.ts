@@ -18,6 +18,7 @@ export interface Company {
   drugLicenseNo?: string | null;
   gstin?: string | null;
   isActive: boolean;
+  routes?: CompanyRoute[];
   totalProducts?: number;
   totalManufacturers?: number;
   stats?: {
@@ -38,6 +39,23 @@ export interface Company {
     };
     composition: string;
   }>;
+}
+
+export interface CompanyRoute {
+  id: string;
+  companyId: string;
+  personName: string;
+  designation?: string | null;
+  phone: string;
+  email?: string | null;
+  routeAreas: string;
+  schedule: string;
+  mapUrl?: string | null;
+  notes?: string | null;
+  orderIndex: number;
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Manufacturer {
@@ -191,11 +209,90 @@ export interface AuthUser {
   id: string;
   name: string;
   email: string;
-  role: "SUPER_ADMIN" | "COMPANY_ADMIN";
+  role: "SUPER_ADMIN" | "COMPANY_ADMIN" | "COMPANY_STAFF";
   companies: Array<{
     id: string;
     name: string;
     slug: string;
     shortName: string;
   }>;
+}
+
+export interface EmployeeDashboardData {
+  company: Company;
+  inquiries: {
+    total: number;
+    pending: number;
+    inReview: number;
+    responded: number;
+    closed: number;
+    today: number;
+  };
+  catalog: {
+    totalProducts: number;
+    totalManufacturers: number;
+  };
+  recentInquiries: Inquiry[];
+}
+
+export interface WholesaleProduct {
+  id: string;
+  productId: string;
+  name: string;
+  slug: string;
+  dosageForm: string;
+  packaging: string;
+  schedule?: string | null;
+  manufacturer: {
+    id: string;
+    name: string;
+    slug: string;
+  };
+  itemCode?: string | null;
+  distributorNotes?: string | null;
+  wholesale: {
+    pts: number | null;
+    ptr: number | null;
+    mrp: number | null;
+    gst: string | null;
+    hsn: string | null;
+    division: string | null;
+    retailerMarginPercent: number | null;
+  };
+  ingredients: Array<{
+    name: string;
+    quantity: number;
+    unit: string;
+    perBasis: string;
+  }>;
+}
+
+export interface RateSheetItem {
+  itemCode: string;
+  name: string;
+  manufacturer: string;
+  division: string;
+  dosageForm: string;
+  packaging: string;
+  composition: string;
+  pts: string;
+  ptr: string;
+  mrp: string;
+  gst: string;
+  hsn: string;
+}
+
+export interface RateSheetData {
+  company: {
+    name: string;
+    slug: string;
+    phone: string;
+    email: string;
+    address: string;
+    drugLicenseNo?: string | null;
+    gstin?: string | null;
+  };
+  generatedAt: string;
+  totalCount: number;
+  products: RateSheetItem[];
 }
