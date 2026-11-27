@@ -8,7 +8,7 @@ export interface AuthUser {
   id: string;
   email: string;
   name: string;
-  role: "SUPER_ADMIN" | "COMPANY_ADMIN";
+  role: "SUPER_ADMIN" | "COMPANY_ADMIN" | "COMPANY_STAFF";
   companyIds: string[];
 }
 
@@ -17,6 +17,7 @@ declare global {
   namespace Express {
     interface Request {
       user?: AuthUser;
+      company?: any;
     }
   }
 }
@@ -50,7 +51,7 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
       id: user.id,
       email: user.email,
       name: user.name,
-      role: user.role as "SUPER_ADMIN" | "COMPANY_ADMIN",
+      role: user.role as "SUPER_ADMIN" | "COMPANY_ADMIN" | "COMPANY_STAFF",
       companyIds: user.memberships.map((m) => m.companyId),
     };
 
@@ -76,4 +77,47 @@ export function requireSuperAdmin(req: Request, res: Response, next: NextFunctio
 export function checkCompanyAccess(user: AuthUser, companyId: string): boolean {
   if (user.role === "SUPER_ADMIN") return true;
   return user.companyIds.includes(companyId);
+}
+
+/**
+ * Middleware that verifies the authenticated user has staff or admin access
+ * to the company specified in the route slug (:slug or :companySlug).
+ */
+export async function requireCompanyStaff(req: Request, res: Response, next: NextFunction) {
+  try {
+    const rawSlug = req.params.slug || req.params.companySlug;
+    if (!rawSlug) {
+      throw new ApiError(400, "Company identifier parameter missing");
+    }
+
+    const s = rawSlug.toLowerCase().trim();
+    const candidateSlugs =
+      s === "kothottil-pharma" || s === "kothittil-pharma" || s === "kothootil-pharma"
+        ? ["kothottil-pharma", "kothittil-pharma", "kothootil-pharma"]
+        : [s];
+
+    const company = await prisma.company.findFirst({
+      where: {
+        slug: { in: candidateSlugs },
+        isActive: true,
+      },
+    });
+
+    if (!company) {
+      throw new ApiError(404, `Company '${rawSlug}' not found or inactive`);
+    }
+
+    if (!req.user) {
+      throw new ApiError(401, "Authentication required");
+    }
+
+    if (!checkCompanyAccess(req.user, company.id)) {
+      throw new ApiError(403, `Access denied: You are not an authorized staff member of ${company.name}`);
+    }
+
+    req.company = company;
+    next();
+  } catch (err) {
+    next(err);
+  }
 }

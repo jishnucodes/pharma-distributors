@@ -32,8 +32,31 @@ model Company {
   companyManufacturers CompanyManufacturer[]
   inquiries            Inquiry[]
   memberships          CompanyMembership[]
+  routes               CompanyRoute[]
 
   @@index([slug])
+}
+
+model CompanyRoute {
+  id          String   @id @default(cuid())
+  companyId   String
+  personName  String
+  designation String?  // e.g. "Area Sales Officer", "Delivery Associate", "Medical Rep"
+  phone       String
+  email       String?
+  routeAreas  String   // Areas / beats covered e.g. "Ernakulam North, Aluva, Angamaly"
+  schedule    String   // Schedule / days e.g. "Monday, Wednesday, Friday"
+  mapUrl      String?  // Google Maps link or route beat URL
+  notes       String?  // Special delivery / cutoff notes
+  orderIndex  Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@index([companyId, isActive])
 }
 
 model Manufacturer {

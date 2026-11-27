@@ -90,7 +90,7 @@ companyRouter.get("/:slug", async (req: Request, res: Response, next: NextFuncti
 
       const authorizedMfgIds = await getAuthorizedManufacturerIds(company.id);
 
-      const [publishedProductsCount, authorizedManufacturersCount, featuredProducts] =
+      const [publishedProductsCount, authorizedManufacturersCount, featuredProducts, routes] =
         await Promise.all([
           prisma.companyProduct.count({
             where: {
@@ -119,10 +119,18 @@ companyRouter.get("/:slug", async (req: Request, res: Response, next: NextFuncti
               },
             },
           }),
+          prisma.companyRoute.findMany({
+            where: {
+              companyId: company.id,
+              isActive: true,
+            },
+            orderBy: [{ orderIndex: "asc" }, { createdAt: "asc" }],
+          }),
         ]);
 
       return {
         ...company,
+        routes,
         stats: {
           totalProducts: publishedProductsCount,
           totalManufacturers: authorizedManufacturersCount,
@@ -147,6 +155,42 @@ companyRouter.get("/:slug", async (req: Request, res: Response, next: NextFuncti
     }, 60);
 
     res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=300");
+    res.json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// 2a. Fast dedicated company routes endpoint (Field Rep & Delivery Route Map)
+companyRouter.get("/:slug/routes", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const slug = req.params.slug;
+    const data = await memoryCache.getOrSet(`company_routes:${slug}`, async () => {
+      const company = await getCompanyBySlug(slug);
+      const routes = await prisma.companyRoute.findMany({
+        where: {
+          companyId: company.id,
+          isActive: true,
+        },
+        orderBy: [{ orderIndex: "asc" }, { createdAt: "asc" }],
+      });
+
+      return {
+        company: {
+          id: company.id,
+          name: company.name,
+          slug: company.slug,
+          shortName: company.shortName,
+          accentColor: company.accentColor,
+          phone: company.phone,
+          serviceAreas: company.serviceAreas,
+          businessHours: company.businessHours,
+        },
+        routes,
+      };
+    }, 30);
+
+    res.setHeader("Cache-Control", "public, max-age=30, stale-while-revalidate=120");
     res.json({ success: true, data });
   } catch (err) {
     next(err);

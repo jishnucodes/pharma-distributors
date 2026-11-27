@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Pill, Factory, Phone, ClipboardList } from "lucide-react";
+import { Home, Pill, Factory, MapPin, Phone, ClipboardList } from "lucide-react";
 import { useInquiry } from "@/components/inquiry/InquiryContext";
 import { companyNav, isActivePath } from "./CompanyHeader";
 
-const ICONS = [Home, Pill, Factory, Phone];
-const SHORT = ["Home", "Products", "Brands", "Contact"];
+const ICONS = [Home, Pill, Factory, MapPin, Phone];
+const SHORT = ["Home", "Products", "Brands", "Routes", "Contact"];
 
 /** Thumb-reach navigation for phones; large targets and always-visible labels. */
 export function MobileTabBar({ slug }: { slug: string }) {
@@ -19,7 +19,7 @@ export function MobileTabBar({ slug }: { slug: string }) {
       aria-label="Main"
       className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden"
     >
-      <ul className="grid grid-cols-5">
+      <ul className="grid grid-cols-6">
         {companyNav(slug).map((item, i) => {
           const Icon = ICONS[i];
           const active = isActivePath(pathname, item.href, slug);

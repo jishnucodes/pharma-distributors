@@ -32,8 +32,31 @@ model Company {
   companyManufacturers CompanyManufacturer[]
   inquiries            Inquiry[]
   memberships          CompanyMembership[]
+  routes               CompanyRoute[]
 
   @@index([slug])
+}
+
+model CompanyRoute {
+  id          String   @id @default(cuid())
+  companyId   String
+  personName  String
+  designation String?
+  phone       String
+  email       String?
+  routeAreas  String
+  schedule    String
+  mapUrl      String?
+  notes       String?
+  orderIndex  Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@index([companyId, isActive])
 }
 
 model Manufacturer {

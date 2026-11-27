@@ -319,3 +319,295 @@ export async function toggleCompanyManufacturerAuthorization(
   if (!res.ok) throw new Error(data.message || "Failed to update brand authorization");
   return data;
 }
+
+// ==========================================
+// EMPLOYEE / STAFF PORTAL API FUNCTIONS
+// ==========================================
+
+export async function fetchEmployeeStats(slug: string, token: string): Promise<import("@/types").EmployeeDashboardData> {
+  const res = await fetch(`${API_BASE}/companies/${slug}/employee/stats`, {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: "no-store",
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || "Failed to fetch employee dashboard data");
+  return data.data;
+}
+
+export async function fetchEmployeeInquiries(
+  slug: string,
+  token: string,
+  params: { status?: string; q?: string; page?: number; limit?: number } = {}
+) {
+  const query = new URLSearchParams();
+  if (params.status) query.set("status", params.status);
+  if (params.q) query.set("q", params.q);
+  if (params.page) query.set("page", params.page.toString());
+  if (params.limit) query.set("limit", params.limit.toString());
+
+  const res = await fetch(`${API_BASE}/companies/${slug}/employee/inquiries?${query.toString()}`, {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: "no-store",
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || "Failed to fetch distributor inquiries");
+  return data;
+}
+
+export async function createEmployeeInquiry(
+  slug: string,
+  token: string,
+  payload: {
+    name: string;
+    businessName: string;
+    phone: string;
+    email?: string;
+    message: string;
+    productId?: string | null;
+    adminNotes?: string;
+    status?: string;
+  }
+) {
+  const res = await fetch(`${API_BASE}/companies/${slug}/employee/inquiries`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || "Failed to log counter/phone order");
+  return data;
+}
+
+export async function updateEmployeeInquiry(
+  slug: string,
+  token: string,
+  inquiryId: string,
+  payload: { status?: string; adminNotes?: string }
+) {
+  const res = await fetch(`${API_BASE}/companies/${slug}/employee/inquiries/${inquiryId}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || "Failed to update inquiry");
+  return data;
+}
+
+export async function fetchEmployeeWholesaleProducts(
+  slug: string,
+  token: string,
+  params: {
+    q?: string;
+    manufacturer?: string;
+    dosageForm?: string;
+    division?: string;
+    page?: number;
+    limit?: number;
+  } = {}
+) {
+  const query = new URLSearchParams();
+  if (params.q) query.set("q", params.q);
+  if (params.manufacturer) query.set("manufacturer", params.manufacturer);
+  if (params.dosageForm) query.set("dosageForm", params.dosageForm);
+  if (params.division) query.set("division", params.division);
+  if (params.page) query.set("page", params.page.toString());
+  if (params.limit) query.set("limit", params.limit.toString());
+
+  const res = await fetch(`${API_BASE}/companies/${slug}/employee/products/wholesale?${query.toString()}`, {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: "no-store",
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || "Failed to fetch wholesale products");
+  return data;
+}
+
+export async function fetchEmployeeRateSheet(slug: string, token: string, manufacturer?: string): Promise<import("@/types").RateSheetData> {
+  const query = new URLSearchParams();
+  if (manufacturer) query.set("manufacturer", manufacturer);
+
+  const res = await fetch(`${API_BASE}/companies/${slug}/employee/rate-sheet?${query.toString()}`, {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: "no-store",
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || "Failed to fetch rate sheet");
+  return data.data;
+}
+
+// ==========================================
+// ADMIN STAFF & EMPLOYEE MANAGEMENT API
+// ==========================================
+
+export async function fetchAdminUsers(token: string, companyId?: string) {
+  const query = new URLSearchParams();
+  if (companyId) query.set("companyId", companyId);
+
+  const res = await fetch(`${API_BASE}/admin/users?${query.toString()}`, {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: "no-store",
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || "Failed to fetch staff members");
+  return data.data;
+}
+
+export async function createAdminUser(
+  token: string,
+  payload: {
+    name: string;
+    email: string;
+    password: string;
+    role: "COMPANY_STAFF" | "COMPANY_ADMIN";
+    companyId: string;
+  }
+) {
+  const res = await fetch(`${API_BASE}/admin/users`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || "Failed to create staff account");
+  return data;
+}
+
+export async function updateAdminUser(
+  token: string,
+  userId: string,
+  payload: {
+    name?: string;
+    email?: string;
+    password?: string;
+    role?: "COMPANY_STAFF" | "COMPANY_ADMIN";
+    companyId?: string;
+  }
+) {
+  const res = await fetch(`${API_BASE}/admin/users/${userId}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || "Failed to update staff account");
+  return data;
+}
+
+export async function deleteAdminUser(token: string, userId: string) {
+  const res = await fetch(`${API_BASE}/admin/users/${userId}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || "Failed to delete staff member");
+  return data;
+}
+
+// ==========================================
+// Field Representative & Delivery Route APIs
+// ==========================================
+
+export async function fetchCompanyRoutes(slug: string): Promise<{ company: any; routes: any[] }> {
+  const res = await fetch(`${API_BASE}/companies/${slug}/routes`, {
+    next: { revalidate: 30 },
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Failed to fetch company routes");
+  return data.data;
+}
+
+export async function fetchAdminCompanyRoutes(token: string, companyId: string): Promise<any[]> {
+  const res = await fetch(`${API_BASE}/admin/companies/${companyId}/routes`, {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: "no-store",
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || data.error || "Failed to load company routes");
+  return data.data;
+}
+
+export async function createAdminCompanyRoute(
+  token: string,
+  companyId: string,
+  payload: {
+    personName: string;
+    designation?: string;
+    phone: string;
+    email?: string;
+    routeAreas: string;
+    schedule: string;
+    mapUrl?: string;
+    notes?: string;
+    orderIndex?: number;
+    isActive?: boolean;
+  }
+) {
+  const res = await fetch(`${API_BASE}/admin/companies/${companyId}/routes`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || data.error || "Failed to add route representative");
+  return data;
+}
+
+export async function updateAdminCompanyRoute(
+  token: string,
+  companyId: string,
+  routeId: string,
+  payload: {
+    personName?: string;
+    designation?: string;
+    phone?: string;
+    email?: string;
+    routeAreas?: string;
+    schedule?: string;
+    mapUrl?: string;
+    notes?: string;
+    orderIndex?: number;
+    isActive?: boolean;
+  }
+) {
+  const res = await fetch(`${API_BASE}/admin/companies/${companyId}/routes/${routeId}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || data.error || "Failed to update route representative");
+  return data;
+}
+
+export async function deleteAdminCompanyRoute(token: string, companyId: string, routeId: string) {
+  const res = await fetch(`${API_BASE}/admin/companies/${companyId}/routes/${routeId}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || data.error || "Failed to delete route representative");
+  return data;
+}
